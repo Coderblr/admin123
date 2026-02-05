@@ -132,10 +132,13 @@ export default function Sidebar({
 
   if (!sidebarOpen) return null;
 
-  // ✅ ROLE-BASED FILTERING (user_type === 1 => admin)
+  // ✅ CORRECT ROLE CHECK
+  const isAdmin = user?.userType === 1;
+
+  // ✅ FILTER ADMIN + TELLER FOR ADMIN ONLY
   const filteredCategories = serviceCategories.filter(cat => {
     if (cat.id === 'teller' || cat.id === 'admin') {
-      return user?.user_type === 1;
+      return isAdmin;
     }
     return true;
   });
@@ -158,7 +161,6 @@ export default function Sidebar({
 
           return (
             <div key={category.id} style={{ marginBottom: '0.25rem' }}>
-              {/* CATEGORY */}
               <button
                 onClick={() =>
                   hasMultiple
@@ -169,119 +171,27 @@ export default function Sidebar({
                   ...styles.sidebarBtn,
                   backgroundColor: active ? '#e3f2fd' : 'transparent',
                   color: active ? '#1976d2' : '#555',
-                  fontWeight: active ? '600' : '400',
-                  padding: '0.5rem 0.75rem',
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  borderRadius: '6px',
-                  fontSize: '13px'
+                  fontWeight: active ? '600' : '400'
                 }}
               >
                 {category.icon}
                 <span style={{ flex: 1, textAlign: 'left' }}>
                   {category.name}
                 </span>
-                {hasMultiple && (
-                  <span style={{ fontSize: '10px', opacity: 0.6 }}>
-                    {expandedCategory === category.id ? '▼' : '▶'}
-                  </span>
-                )}
               </button>
 
-              {/* SERVICES */}
               {hasMultiple && expandedCategory === category.id && (
-                <div style={{ marginTop: '0.25rem', marginLeft: '0.5rem' }}>
-                  {category.services.map(service => {
-                    const isOpen = expandedService === service.id;
-
-                    return (
-                      <div key={service.id}>
-                        <button
-                          onClick={() => {
-                            if (service.subServices) {
-                              setExpandedService(isOpen ? null : service.id);
-                            } else {
-                              setActiveService(service.id);
-                              setExpandedService(null);
-                            }
-                          }}
-                          style={{
-                            ...styles.sidebarBtn,
-                            backgroundColor:
-                              activeService === service.id || isOpen
-                                ? '#e3f2fd'
-                                : 'transparent',
-                            color:
-                              activeService === service.id || isOpen
-                                ? '#1976d2'
-                                : '#666',
-                            fontWeight:
-                              activeService === service.id || isOpen
-                                ? '600'
-                                : '400',
-                            padding: '0.4rem 0.75rem',
-                            marginBottom: '0.15rem',
-                            borderLeft: '2px solid #e0e0e0',
-                            borderRadius: '4px',
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '12.5px'
-                          }}
-                        >
-                          {service.icon}
-                          <span style={{ flex: 1, textAlign: 'left' }}>
-                            {service.name}
-                          </span>
-                          {service.subServices && (
-                            <span style={{ fontSize: '10px', opacity: 0.6 }}>
-                              {isOpen ? '▼' : '▶'}
-                            </span>
-                          )}
-                        </button>
-
-                        {/* SUB SERVICES */}
-                        {service.subServices && isOpen && (
-                          <div style={{ marginLeft: '1.5rem', marginTop: '0.15rem' }}>
-                            {service.subServices.map(sub => (
-                              <button
-                                key={sub.id}
-                                onClick={() => setActiveService(sub.id)}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  padding: '0.35rem 0.5rem',
-                                  fontSize: '12px',
-                                  textAlign: 'left',
-                                  width: '100%',
-                                  cursor: 'pointer',
-                                  color:
-                                    activeService === sub.id ? '#1976d2' : '#666',
-                                  fontWeight:
-                                    activeService === sub.id ? '600' : '400',
-                                  borderRadius: '4px',
-                                  marginBottom: '0.1rem'
-                                }}
-                                onMouseEnter={e => {
-                                  if (activeService !== sub.id) {
-                                    e.target.style.backgroundColor = '#f5f5f5';
-                                  }
-                                }}
-                                onMouseLeave={e => {
-                                  e.target.style.backgroundColor = 'transparent';
-                                }}
-                              >
-                                • {sub.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div style={{ marginLeft: '0.5rem' }}>
+                  {category.services.map(service => (
+                    <button
+                      key={service.id}
+                      onClick={() => setActiveService(service.id)}
+                      style={styles.sidebarBtn}
+                    >
+                      {service.icon}
+                      {service.name}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
