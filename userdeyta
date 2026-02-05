@@ -1,0 +1,22 @@
+'use client';
+
+import { styles } from "../../styles/AppStyles";
+
+export default function UserDetail({ user, onBack }) {
+  if (!user) return <div style={styles.accessDenied}>No user selected</div>;
+
+  return (
+    <div style={styles.content}>
+      <div style={styles.card}>
+        <button onClick={() => onBack && onBack()} style={{ marginBottom: 12 }}>← Back</button>
+        <h2 style={styles.pageTitle}>{user.firstName} {user.lastName} ({user.username})</h2>
+        <div style={{ marginTop: 12 }}>
+          <p><strong>Department:</strong> {user.departmentCode}</p>
+          <p><strong>Email:</strong> {user.email}</p>
+          <p><strong>Disabled:</strong> {user.disabled ? 'Yes' : 'No'}</p>
+          <p><strong>Created:</strong> {user.created_at || 'N/A'}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
