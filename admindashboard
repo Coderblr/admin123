@@ -1,0 +1,209 @@
+'use client';
+
+import { useEffect, useState } from "react";
+import { styles } from "../../styles/AppStyles";
+
+export default function AdminDashboard() {
+  const [response, setResponse] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Safe access for Next.js
+  const userToken =
+    typeof window !== "undefined"
+      ? localStorage.getItem("userToken")
+      : null;
+
+  useEffect(() => {
+    fetchAdminDashboard();
+    fetchAllUsers();
+  }, []);
+
+  async function fetchAdminDashboard() {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "http://10.1.161.165:5050/admin/dashboard",
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      setResponse(data);
+    } catch {
+      setError("Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchAllUsers() {
+    try {
+      const res = await fetch(
+        "http://10.1.161.165:5050/admin/users",
+        {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+      setUsers(data);
+    } catch {
+      setError("Failed to load users");
+    }
+  }
+
+  const filteredUsers = users.filter(user =>
+    `${user.username} ${user.firstName} ${user.lastName}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <div style={page}>
+      {/* HEADER */}
+      <h1 style={heading}>Admin Dashboard</h1>
+
+      {loading && <p>Loading...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {/* DASHBOARD INFO */}
+      {response && (
+        <div style={card}>
+          <h2 style={cardTitle}>{response.message}</h2>
+          <p style={mutedText}>
+            Logged in as <strong>{response.username}</strong>
+          </p>
+        </div>
+      )}
+
+      {/* USERS SECTION */}
+      <div style={card}>
+        <div style={tableHeader}>
+          <h2 style={cardTitle}>User Management</h2>
+
+          <input
+            type="text"
+            placeholder="Search user by name or username..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={searchInput}
+          />
+        </div>
+
+        <table style={table}>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Full Name</th>
+              <th>Department</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredUsers.map((user, index) => (
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td style={usernameCell}>{user.username}</td>
+                <td>{user.firstName} {user.lastName}</td>
+                <td>{user.departmentCode}</td>
+                <td>
+                  <span style={badge(user.role)}>
+                    {user.role}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filteredUsers.length === 0 && (
+          <p style={mutedText}>No users found</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===================== */
+/* 🎨 UI STYLES */
+/* ===================== */
+
+const page = {
+  padding: "32px",
+  backgroundColor: "#f4f6f8",
+  minHeight: "100vh",
+};
+
+const heading = {
+  fontSize: "28px",
+  fontWeight: "600",
+  marginBottom: "24px",
+};
+
+const card = {
+  background: "#fff",
+  padding: "24px",
+  borderRadius: "10px",
+  boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+  marginBottom: "24px",
+};
+
+const cardTitle = {
+  fontSize: "18px",
+  fontWeight: "600",
+  marginBottom: "12px",
+};
+
+const mutedText = {
+  color: "#666",
+  fontSize: "14px",
+};
+
+const tableHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "16px",
+};
+
+const searchInput = {
+  padding: "8px 12px",
+  borderRadius: "6px",
+  border: "1px solid #ccc",
+  minWidth: "260px",
+  fontSize: "14px",
+};
+
+const table = {
+  width: "100%",
+  borderCollapse: "collapse",
+};
+
+const usernameCell = {
+  fontWeight: "600",
+  color: "#1d4ed8",
+};
+
+const badge = role => ({
+  padding: "4px 10px",
+  borderRadius: "12px",
+  fontSize: "12px",
+  fontWeight: "500",
+  textTransform: "capitalize",
+  backgroundColor: role === "admin" ? "#fee2e2" : "#e0f2fe",
+  color: role === "admin" ? "#991b1b" : "#075985",
+});
