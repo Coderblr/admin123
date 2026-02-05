@@ -1,0 +1,241 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function UserManagement({ onViewUser, onViewLogs }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const userToken = localStorage.getItem("userToken");
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  /* ===================== */
+  /* FETCH USERS (REAL API) */
+  /* ===================== */
+  async function fetchUsers() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://10.1.161.165:5050/admin/users", {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to load users");
+
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      setError("Failed to load users");
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ===================== */
+  /* ENABLE / DISABLE USER */
+  /* ===================== */
+  async function toggleUserStatus(username, currentDisabled) {
+    // Optimistic UI update
+    setUsers(prev =>
+      prev.map(u =>
+        u.username === username
+          ? { ...u, disabled: !currentDisabled }
+          : u
+      )
+    );
+
+    try {
+      const res = await fetch(
+        `http://10.1.161.165:5050/admin/users/status?username=${username}&disabled=${!currentDisabled}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Update failed");
+    } catch {
+      setError("Failed to update user status");
+      fetchUsers(); // rollback
+    }
+  }
+
+  return (
+    <div style={page}>
+      <div style={container}>
+        <h1 style={heading}>User Management</h1>
+        <p style={subHeading}>Manage user access and status</p>
+
+        {loading && <p>Loading users...</p>}
+        {error && <div style={errorAlert}>{error}</div>}
+
+        <div style={card}>
+          <table style={table}>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Action</th>
+                <th>Logs</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {users.map((u, i) => (
+                <tr key={u.username}>
+                  <td>{i + 1}</td>
+
+                  {/* Clickable Username */}
+                  <td style={usernameCell}>
+                    <button
+                      onClick={() => onViewUser && onViewUser(u)}
+                      style={usernameBtn}
+                    >
+                      {u.username}
+                    </button>
+                  </td>
+
+                  <td>{u.firstName} {u.lastName}</td>
+                  <td>{u.departmentCode}</td>
+
+                  <td>
+                    <span style={statusBadge(!u.disabled)}>
+                      {u.disabled ? "Disabled" : "Enabled"}
+                    </span>
+                  </td>
+
+                  <td>
+                    <button
+                      style={{
+                        ...actionButton,
+                        backgroundColor: u.disabled ? "#10b981" : "#ef4444",
+                      }}
+                      onClick={() =>
+                        toggleUserStatus(u.username, u.disabled)
+                      }
+                    >
+                      {u.disabled ? "Enable" : "Disable"}
+                    </button>
+                  </td>
+
+                  <td>
+                    <button
+                      onClick={() => onViewLogs && onViewLogs(u)}
+                      style={{ ...actionButton, backgroundColor: "#2563eb" }}
+                    >
+                      View Logs
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {users.length === 0 && !loading && (
+            <p style={emptyText}>No users found</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===================== */
+/* STYLES */
+/* ===================== */
+
+const page = {
+  backgroundColor: "#f8fafc",
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  padding: "24px",
+};
+
+const container = {
+  width: "100%",
+  maxWidth: "1200px",
+};
+
+const heading = {
+  fontSize: "28px",
+  fontWeight: 700,
+  marginBottom: "4px",
+};
+
+const subHeading = {
+  fontSize: "14px",
+  color: "#64748b",
+  marginBottom: "24px",
+};
+
+const card = {
+  backgroundColor: "#fff",
+  padding: "20px",
+  borderRadius: "10px",
+  border: "1px solid #e5e7eb",
+};
+
+const table = {
+  width: "100%",
+  borderCollapse: "collapse",
+};
+
+const usernameCell = {
+  fontWeight: 600,
+};
+
+const usernameBtn = {
+  background: "transparent",
+  border: "none",
+  color: "#0369a1",
+  cursor: "pointer",
+  fontWeight: 600,
+};
+
+const statusBadge = enabled => ({
+  padding: "4px 10px",
+  borderRadius: "6px",
+  fontSize: "12px",
+  fontWeight: 600,
+  backgroundColor: enabled ? "#ecfdf5" : "#fef2f2",
+  color: enabled ? "#065f46" : "#991b1b",
+  border: `1px solid ${enabled ? "#6ee7b7" : "#fecaca"}`,
+});
+
+const actionButton = {
+  padding: "6px 12px",
+  borderRadius: "6px",
+  border: "none",
+  color: "#fff",
+  fontSize: "12px",
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+const emptyText = {
+  marginTop: "16px",
+  color: "#6b7280",
+};
+
+const errorAlert = {
+  backgroundColor: "#fef2f2",
+  color: "#dc2626",
+  padding: "12px",
+  borderRadius: "6px",
+  marginBottom: "16px",
+};
