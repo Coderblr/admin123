@@ -35,3 +35,89 @@ const newErrors = {};
   setErrors({});
   setLoading(true);
   setMessage("");
+
+
+
+
+
+
+
+<input
+  type="text"
+  value={username}
+  onChange={(e) => {
+    setUsername(e.target.value);
+    setErrors({ ...errors, username: "" });
+  }}
+  style={styles.input}
+  placeholder="Choose a username"
+/>
+
+{errors.username && (
+  <div style={styles.fieldError}>{errors.username}</div>
+)}
+
+
+
+
+
+<input
+  type="text"
+  value={firstName}
+  onChange={(e) => {
+    setFirstName(e.target.value);
+    setErrors({ ...errors, firstName: "" });
+  }}
+  style={styles.input}
+/>
+
+{errors.firstName && (
+  <div style={styles.fieldError}>{errors.firstName}</div>
+)}
+
+
+
+
+
+
+{errors.lastName && (
+  <div style={styles.fieldError}>{errors.lastName}</div>
+)}
+
+
+
+
+<select
+  value={departmentCode}
+  onChange={(e) => {
+    setDepartmentCode(e.target.value);
+    setErrors({ ...errors, departmentCode: "" });
+  }}
+  style={styles.input}
+>
+{errors.departmentCode && (
+  <div style={styles.fieldError}>{errors.departmentCode}</div>
+)}
+
+
+
+
+
+{errors.password && (
+  <div style={styles.fieldError}>{errors.password}</div>
+)}
+
+
+{errors.confirmPassword && (
+  <div style={styles.fieldError}>{errors.confirmPassword}</div>
+)}
+
+
+
+
+fieldError: {
+  color: "#d32f2f",
+  fontSize: "12px",
+  marginTop: "4px",
+},
+
