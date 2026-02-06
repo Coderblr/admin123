@@ -121,3 +121,64 @@ fieldError: {
   marginTop: "4px",
 },
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div style={styles.formGroup}>
+  <label style={styles.label}>Password</label>
+
+  <input
+    type="password"
+    value={password}
+    onChange={(e) => {
+      setPassword(e.target.value);
+      setErrors({ ...errors, password: "" });
+    }}
+    style={styles.input}
+    placeholder="Create a password"
+    required
+  />
+
+  {errors.password && (
+    <div style={styles.fieldError}>{errors.password}</div>
+  )}
+</div>
+
+
+
+
+<div style={styles.formGroup}>
+  <label style={styles.label}>Confirm Password</label>
+
+  <input
+    type="password"
+    value={confirmPassword}
+    onChange={(e) => {
+      setConfirmPassword(e.target.value);
+      setErrors({ ...errors, confirmPassword: "" });
+    }}
+    style={styles.input}
+    placeholder="Confirm your password"
+    required
+  />
+
+  {errors.confirmPassword && (
+    <div style={styles.fieldError}>{errors.confirmPassword}</div>
+  )}
+</div>
+
