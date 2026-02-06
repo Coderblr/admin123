@@ -1,9 +1,5 @@
-
-
 import { useState } from "react";
 import { styles } from "../../styles/AppStyles";
-import { validation } from "../utils/validation";
-
 
 export default function DepositAccountView() {
     const [region, setRegion] = useState("O");
@@ -21,27 +17,27 @@ export default function DepositAccountView() {
 
         const errors = {};
 
-        // CIF validation
-        const cifError = validation.cifNo(cif);
-        if (cifError) errors.cif = cifError;
-        // No. of Accounts validation
+        // ✅ CIF validation: exactly 11 digits
+        if (!/^\d{11}$/.test(cif)) {
+            errors.cif = "Please enter correct CIF";
+        }
+
+        // ✅ No. of Accounts validation
         if (!no_acc || Number(no_acc) < 1 || Number(no_acc) > 10) {
             errors.no_acc = "Number of accounts must be between 1 and 10";
         }
 
-        // If errors exist, stop submission
         if (Object.keys(errors).length > 0) {
             setFormErrors(errors);
             return;
         }
 
-        // Clear errors if validation passed
         setFormErrors({});
-
         setLoading(true);
         setError(null);
         setResponse([]);
-const userToken = localStorage.getItem('userToken');
+
+        const userToken = localStorage.getItem("userToken");
         const url = `http://10.1.11.15:50560140/create_deposit_account/`;
 
         try {
@@ -49,7 +45,7 @@ const userToken = localStorage.getItem('userToken');
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                     'Authorization': `Bearer ${userToken}`,
+                    Authorization: `Bearer ${userToken}`,
                 },
                 body: JSON.stringify({
                     region: region,
@@ -61,16 +57,12 @@ const userToken = localStorage.getItem('userToken');
             });
 
             if (!res.ok) {
-                throw new Error(
-                    `API returned an error: ${res.status} ${res.statusText}`
-                );
+                throw new Error(`API error: ${res.status} ${res.statusText}`);
             }
 
             const data = await res.json();
-            console.log("API Response Data:", data); 
             setResponse(data);
         } catch (err) {
-            console.error("Fetch error:", err);
             setError(err.message);
             setResponse([
                 { res_data: JSON.stringify({ ERROR_DESCRIPTION: err.message }) },
@@ -86,8 +78,18 @@ const userToken = localStorage.getItem('userToken');
             return;
         }
 
-        const headers = ["Region", "Customer Number", "Product Code", "Account Segment", "RRN", "Status", "Account Number"];
-        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+        const headers = [
+            "Region",
+            "Customer Number",
+            "Product Code",
+            "Account Segment",
+            "RRN",
+            "Status",
+            "Account Number",
+        ];
+
+        let csvContent =
+            "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
 
         response.forEach((item) => {
             try {
@@ -100,11 +102,11 @@ const userToken = localStorage.getItem('userToken');
                     item.RRN || "",
                     parsedResData.STATUS || "",
                     parsedResData.ACCOUNT_NUMBER || "",
-                ].map((field) => `"${field}"`).join(",");
+                ]
+                    .map((field) => `"${field}"`)
+                    .join(",");
                 csvContent += row + "\n";
-            } catch (e) {
-                console.error("Error parsing res_data for CSV:", e);
-            }
+            } catch {}
         });
 
         const encodedUri = encodeURI(csvContent);
@@ -119,15 +121,14 @@ const userToken = localStorage.getItem('userToken');
     return (
         <div>
             <div style={styles.pageHeader}>
-                <div>
-                    <h1 style={styles.pageTitle}>Create Deposit Account</h1>
-                    <p style={styles.pageSubtitle}>Generate deposit accounts for testing</p>
-                </div>
+                <h1 style={styles.pageTitle}>Create Deposit Account</h1>
+                <p style={styles.pageSubtitle}>Generate deposit accounts</p>
             </div>
 
             <div style={styles.formCard}>
                 <form onSubmit={handleSubmit}>
                     <div style={styles.formGrid}>
+                        {/* REGION */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Region</label>
                             <select
@@ -149,22 +150,37 @@ const userToken = localStorage.getItem('userToken');
                             </select>
                         </div>
 
+                        {/* CIF */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>CIF</label>
                             <input
                                 type="text"
                                 value={cif}
-                                onChange={(e) => setCif(validation.formatMobile(e.target.value))}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+
+                                    if (!/^\d*$/.test(value) || value.length > 11) {
+                                        setFormErrors({
+                                            ...formErrors,
+                                            cif: "Please enter correct CIF",
+                                        });
+                                        return;
+                                    }
+
+                                    setCif(value);
+                                    setFormErrors({ ...formErrors, cif: "" });
+                                }}
                                 style={styles.input}
                                 required
                             />
                             {formErrors.cif && (
-                                <div style={styles.fieldError}>{formErrors.cif}</div>
+                                <div style={styles.fieldError}>
+                                    {formErrors.cif}
+                                </div>
                             )}
-
-
                         </div>
 
+                        {/* PRODUCT CODE */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Product Code</label>
                             <select
@@ -174,13 +190,14 @@ const userToken = localStorage.getItem('userToken');
                                 required
                             >
                                 <option value="">Select Product</option>
-                                <option value="10111101">Savings-10111101</option>
-                                <option value="50111511">TDR-50111511</option>
-                                <option value="50111101">Current-50111101</option>
-                                <option value="10141101">NRE-10141101</option>
+                                <option value="10111101">Savings</option>
+                                <option value="50111511">TDR</option>
+                                <option value="50111101">Current</option>
+                                <option value="10141101">NRE</option>
                             </select>
                         </div>
 
+                        {/* ACCOUNT SEGMENT */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Account Segment</label>
                             <select
@@ -191,10 +208,10 @@ const userToken = localStorage.getItem('userToken');
                             >
                                 <option value="">Select Segment</option>
                                 <option value="0706">0706</option>
-                                
                             </select>
                         </div>
 
+                        {/* NO OF ACCOUNTS */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>No. of Accounts</label>
                             <input
@@ -202,61 +219,64 @@ const userToken = localStorage.getItem('userToken');
                                 min="1"
                                 max="10"
                                 value={no_acc}
-                                onChange={(e) => {
-                                    console.log(e.target.value)
-                                    setNo_acc(e.target.value)
-                                }}
+                                readOnly
+                                onKeyDown={(e) => e.preventDefault()}
+                                onChange={(e) => setNo_acc(e.target.value)}
                                 style={styles.input}
                             />
                             {formErrors.no_acc && (
-                                <div style={styles.fieldError}>{formErrors.no_acc}</div>
+                                <div style={styles.fieldError}>
+                                    {formErrors.no_acc}
+                                </div>
                             )}
-
-
                         </div>
                     </div>
 
-                    <button type="submit" style={styles.primaryButton} disabled={loading}>
+                    <button
+                        type="submit"
+                        style={styles.primaryButton}
+                        disabled={loading}
+                    >
                         {loading ? "Submitting..." : "Submit"}
                     </button>
                 </form>
             </div>
 
-            {(error || (response && response.length > 0)) && (
+            {(error || response.length > 0) && (
                 <div style={styles.resultsCard}>
                     {error && <div style={styles.errorMsg}>{error}</div>}
 
-                    {response && response.length > 0 && (
+                    {response.length > 0 && (
                         <>
                             <div style={styles.resultsHeader}>
-                                <h3 style={styles.resultsTitle}>Generated Records ({response.length})</h3>
-                                <button onClick={downloadCsv} style={styles.downloadButton}>
+                                <h3 style={styles.resultsTitle}>
+                                    Generated Records ({response.length})
+                                </h3>
+                                <button
+                                    onClick={downloadCsv}
+                                    style={styles.downloadButton}
+                                >
                                     Download CSV
                                 </button>
                             </div>
+
                             <div style={styles.resultsList}>
                                 {response.map((item, index) => {
-                                    try {
-                                        const parsedResData = JSON.parse(item.res_data);
-                                        return (
-                                            <div key={index} style={styles.resultItem}>
-                                                <div style={styles.resultContent}>
-                                                    <p><strong>RRN:</strong> {item.RRN}</p>
-                                                    <p><strong>Customer Number:</strong> {parsedResData.CUSTOMER_NUMBER}</p>
-                                                    <p><strong>Status:</strong> {parsedResData.STATUS}</p>
-                                                    {parsedResData.ACCOUNT_NUMBER && <p><strong>Account Number:</strong> {parsedResData.ACCOUNT_NUMBER}</p>}
-                                                    {parsedResData.ERROR_DESCRIPTION && <p style={styles.errorText}><strong>Error:</strong> {parsedResData.ERROR_DESCRIPTION}</p>}
-                                                </div>
-                                            </div>
-                                        );
-                                    } catch (e) {
-                                        return (
-                                            <div key={index} style={{ ...styles.resultItem, borderLeft: "3px solid #f44336" }}>
-                                                <p style={styles.errorText}>Error parsing response for item with RRN {item.RRN}.</p>
-                                                <pre>{item.res_data}</pre>
-                                            </div>
-                                        );
-                                    }
+                                    const parsed = JSON.parse(item.res_data);
+                                    return (
+                                        <div key={index} style={styles.resultItem}>
+                                            <p><strong>RRN:</strong> {item.RRN}</p>
+                                            <p><strong>Status:</strong> {parsed.STATUS}</p>
+                                            {parsed.ACCOUNT_NUMBER && (
+                                                <p><strong>Account Number:</strong> {parsed.ACCOUNT_NUMBER}</p>
+                                            )}
+                                            {parsed.ERROR_DESCRIPTION && (
+                                                <p style={styles.errorText}>
+                                                    {parsed.ERROR_DESCRIPTION}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
                                 })}
                             </div>
                         </>
