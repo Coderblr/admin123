@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { styles } from "../../styles/AppStyles";
 
-/* 🔐 Password Rules Checker */
-const passwordChecks = (password) => ({
+/* 🔐 Password rule checker (logic only) */
+const getPasswordChecks = (password) => ({
     length: password.length >= 8,
     upper: /[A-Z]/.test(password),
     lower: /[a-z]/.test(password),
@@ -20,17 +20,20 @@ export default function RegisterPage({ onNavigate }) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
 
+    /* 👁️ Toggle states (logic only) */
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const checks = passwordChecks(password);
+    const checks = getPasswordChecks(password);
     const isPasswordValid = Object.values(checks).every(Boolean);
 
     const handleRegister = async (e) => {
         e.preventDefault();
 
         if (!isPasswordValid) {
-            setMessage("Password does not meet all requirements");
+            setMessage(
+                "Password must contain uppercase, lowercase, number and special character"
+            );
             return;
         }
 
@@ -73,29 +76,30 @@ export default function RegisterPage({ onNavigate }) {
         }
     };
 
-    const ruleStyle = (ok) => ({
+    const ruleColor = (ok) => ({
         color: ok ? "#2e7d32" : "#999",
-        fontSize: "13px",
-        marginBottom: "4px",
+        fontSize: "12px",
     });
 
     return (
         <div style={styles.authContainer}>
             <div style={styles.authSplit}>
-                {/* LEFT */}
                 <div style={styles.authLeft}>
                     <div style={styles.authBrand}>
                         <div style={styles.logoCircle}>SBI</div>
                         <span style={styles.brandText}>State Bank of India</span>
                     </div>
-
                     <h1 style={styles.authLeftTitle}>Join Our Platform</h1>
                     <p style={styles.authLeftSubtitle}>
                         Create an account to start generating test data
                     </p>
+                    <div style={styles.authFeatureList}>
+                        <div style={styles.authFeature}>✓ Quick Setup Process</div>
+                        <div style={styles.authFeature}>✓ Secure Authentication</div>
+                        <div style={styles.authFeature}>✓ Full Platform Access</div>
+                    </div>
                 </div>
 
-                {/* RIGHT */}
                 <div style={styles.authRight}>
                     <div style={styles.authForm}>
                         <button
@@ -106,8 +110,10 @@ export default function RegisterPage({ onNavigate }) {
                         </button>
 
                         <h2 style={styles.authTitle}>Create Account</h2>
+                        <p style={styles.authSubtitle}>
+                            Fill in your details to get started
+                        </p>
 
-                        {/* Username */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Username</label>
                             <input
@@ -118,7 +124,6 @@ export default function RegisterPage({ onNavigate }) {
                             />
                         </div>
 
-                        {/* Name */}
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>First Name</label>
@@ -141,7 +146,19 @@ export default function RegisterPage({ onNavigate }) {
                             </div>
                         </div>
 
-                        {/* Password */}
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Department Code</label>
+                            <select
+                                value={departmentCode}
+                                onChange={(e) => setDepartmentCode(e.target.value)}
+                                style={styles.input}
+                                required
+                            >
+                                <option value="">Select Department</option>
+                            </select>
+                        </div>
+
+                        {/* 🔐 Password (same UI, tiny logic addition) */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Password</label>
 
@@ -157,30 +174,28 @@ export default function RegisterPage({ onNavigate }) {
                                     onClick={() => setShowPassword(!showPassword)}
                                     style={{
                                         position: "absolute",
-                                        right: "12px",
+                                        right: "10px",
                                         top: "50%",
-                                        cursor: "pointer",
                                         transform: "translateY(-50%)",
-                                        fontSize: "14px",
+                                        cursor: "pointer",
+                                        fontSize: "13px",
                                     }}
                                 >
                                     {showPassword ? "🙈" : "👁️"}
                                 </span>
                             </div>
 
-                            {/* ✅ Live Checklist */}
-                            <div style={{ marginTop: "8px" }}>
-                                <div style={ruleStyle(checks.length)}>✅ Min 8 characters</div>
-                                <div style={ruleStyle(checks.upper)}>✅ One uppercase letter</div>
-                                <div style={ruleStyle(checks.lower)}>✅ One lowercase letter</div>
-                                <div style={ruleStyle(checks.number)}>✅ One number</div>
-                                <div style={ruleStyle(checks.special)}>
-                                    ✅ One special character (@$!%*?&)
-                                </div>
+                            {/* ✅ Live checklist (no layout impact) */}
+                            <div style={{ marginTop: "6px" }}>
+                                <div style={ruleColor(checks.length)}>✔ 8 characters</div>
+                                <div style={ruleColor(checks.upper)}>✔ Uppercase</div>
+                                <div style={ruleColor(checks.lower)}>✔ Lowercase</div>
+                                <div style={ruleColor(checks.number)}>✔ Number</div>
+                                <div style={ruleColor(checks.special)}>✔ Special character</div>
                             </div>
                         </div>
 
-                        {/* Confirm Password */}
+                        {/* 🔐 Confirm Password */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Confirm Password</label>
 
@@ -188,7 +203,9 @@ export default function RegisterPage({ onNavigate }) {
                                 <input
                                     type={showConfirmPassword ? "text" : "password"}
                                     value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    onChange={(e) =>
+                                        setConfirmPassword(e.target.value)
+                                    }
                                     style={styles.input}
                                     required
                                 />
@@ -198,11 +215,11 @@ export default function RegisterPage({ onNavigate }) {
                                     }
                                     style={{
                                         position: "absolute",
-                                        right: "12px",
+                                        right: "10px",
                                         top: "50%",
-                                        cursor: "pointer",
                                         transform: "translateY(-50%)",
-                                        fontSize: "14px",
+                                        cursor: "pointer",
+                                        fontSize: "13px",
                                     }}
                                 >
                                     {showConfirmPassword ? "🙈" : "👁️"}
@@ -210,15 +227,12 @@ export default function RegisterPage({ onNavigate }) {
                             </div>
                         </div>
 
-                        {/* Message */}
-                        {message && (
-                            <div style={styles.errorMsg}>{message}</div>
-                        )}
+                        {message && <div style={styles.errorMsg}>{message}</div>}
 
                         <button
                             onClick={handleRegister}
                             style={styles.submitBtn}
-                            disabled={loading || !isPasswordValid}
+                            disabled={loading}
                         >
                             {loading ? "Creating Account..." : "Create Account"}
                         </button>
