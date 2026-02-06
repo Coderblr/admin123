@@ -1,0 +1,37 @@
+const newErrors = {};
+
+  // Username
+  const usernameError = validation.username(username);
+  if (usernameError) newErrors.username = usernameError;
+
+  // First name
+  const firstNameError = validation.firstName(firstName);
+  if (firstNameError) newErrors.firstName = firstNameError;
+
+  // Last name
+  const lastNameError = validation.lastName(lastName);
+  if (lastNameError) newErrors.lastName = lastNameError;
+
+  // Password
+  const passwordError = validation.password(password);
+  if (passwordError) newErrors.password = passwordError;
+
+  // Confirm password
+  const confirmPasswordError = validation.confirmPassword(password, confirmPassword);
+  if (confirmPasswordError) newErrors.confirmPassword = confirmPasswordError;
+
+  // Department
+  if (!departmentCode) {
+    newErrors.departmentCode = "Please select a department";
+  }
+
+  // ⛔ If any error exists, stop submit
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
+
+  // ✅ Clear errors if all good
+  setErrors({});
+  setLoading(true);
+  setMessage("");
