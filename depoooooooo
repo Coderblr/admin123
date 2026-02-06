@@ -1,25 +1,15 @@
-const errors = {};
+{formErrors.acc_segment && (
+  <div style={styles.fieldError}>{formErrors.acc_segment}</div>
+)}
 
-// CIF validation
-const cifError = validation.cifNo(cif);
-if (cifError) errors.cif = cifError;
 
-// Product Code validation (required)
-if (!prod_code) errors.prod_code = "Product code is required";
 
-// Account Segment validation
-if (!acc_segment) errors.acc_segment = "Account segment is required";
+{formErrors.no_acc && (
+  <div style={styles.fieldError}>{formErrors.no_acc}</div>
+)}
 
-// No. of Accounts validation
-if (!no_acc || Number(no_acc) < 1 || Number(no_acc) > 10) {
-  errors.no_acc = "Number of accounts must be between 1 and 10";
-}
 
-// If errors exist, stop submission
-if (Object.keys(errors).length > 0) {
-  setFormErrors(errors);
-  return;
-}
 
-// Clear errors if validation passed
-setFormErrors({});
+
+
+onChange={(e) => setCif(validation.formatMobile(e.target.value))}
