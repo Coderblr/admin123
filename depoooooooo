@@ -12,4 +12,13 @@
 
 
 
+
+
+
+{formErrors.cif && (
+  <div style={styles.fieldError}>{formErrors.cif}</div>
+)}
+
+
+
 onChange={(e) => setCif(validation.formatMobile(e.target.value))}
