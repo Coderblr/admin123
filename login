@@ -7,6 +7,9 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    /* 👁️ Toggle state (logic only) */
+    const [showPassword, setShowPassword] = useState(false);
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -24,12 +27,12 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                 }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const data = await response.json();
                 throw new Error(data.detail || "Login failed");
             }
 
-            const data = await response.json();
             const authToken = data.access_token;
             const userType = data.user_type ?? 0; // 1 = admin, 0 = user
 
@@ -37,7 +40,7 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
             localStorage.setItem("userToken", authToken);
             localStorage.setItem("userType", String(userType));
 
-            // pass token + role to parent
+            // notify parent
             onLoginSuccess(authToken, userType);
 
             setUsername("");
@@ -96,16 +99,34 @@ export default function LoginPage({ onLoginSuccess, onNavigate }) {
                             />
                         </div>
 
+                        {/* 🔐 Password (same UI, tiny logic addition) */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                style={styles.input}
-                                placeholder="Enter your password"
-                                required
-                            />
+
+                            <div style={{ position: "relative" }}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    style={styles.input}
+                                    placeholder="Enter your password"
+                                    required
+                                />
+
+                                <span
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{
+                                        position: "absolute",
+                                        right: "10px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        cursor: "pointer",
+                                        fontSize: "13px",
+                                    }}
+                                >
+                                    {showPassword ? "🙈" : "👁️"}
+                                </span>
+                            </div>
                         </div>
 
                         {error && (
