@@ -1,0 +1,149 @@
+// utils/validation.js
+
+export const validation = {
+  // Username validation
+  username: (value) => {
+    if (!value || value.trim() === '') {
+      return 'Username is required';
+    }
+    if (value.length < 3) {
+      return 'Username must be at least 3 characters';
+    }
+    if (value.length > 20) {
+      return 'Username must not exceed 20 characters';
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+      return 'Username can only contain letters, numbers, and underscores';
+    }
+    return '';
+  },
+
+  // First name validation
+  firstName: (value) => {
+    if (!value || value.trim() === '') {
+      return 'First name is required';
+    }
+    if (value.length < 2) {
+      return 'First name must be at least 2 characters';
+    }
+    if (!/^[a-zA-Z\s]+$/.test(value)) {
+      return 'First name can only contain letters';
+    }
+    return '';
+  },
+
+  // Last name validation
+  lastName: (value) => {
+    if (!value || value.trim() === '') {
+      return 'Last name is required';
+    }
+    if (value.length < 2) {
+      return 'Last name must be at least 2 characters';
+    }
+    if (!/^[a-zA-Z\s]+$/.test(value)) {
+      return 'Last name can only contain letters';
+    }
+    return '';
+  },
+
+  // Password validation
+  password: (value) => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (!/[A-Z]/.test(value)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(value)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/\d/.test(value)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/[!@#$%^&*]/.test(value)) {
+      return 'Password must contain at least one special character (!@#$%^&*)';
+    }
+    return '';
+  },
+
+  // Confirm password validation
+  confirmPassword: (password, confirmPassword) => {
+    if (!confirmPassword) {
+      return 'Please confirm your password';
+    }
+    if (password !== confirmPassword) {
+      return 'Passwords do not match';
+    }
+    return '';
+  },
+
+  // Mobile number validation (10 digits only)
+  mobile: (value) => {
+    if (!value || value.trim() === '') {
+      return 'Mobile number is required';
+    }
+    const cleaned = value.replace(/\s/g, '');
+    if (!/^\d{10}$/.test(cleaned)) {
+      return 'Mobile number must be exactly 10 digits';
+    }
+    return '';
+  },
+
+  // CIF number validation (11 digits only)
+  cifNo: (value) => {
+    if (!value || value.trim() === '') {
+      return 'CIF number is required';
+    }
+    const cleaned = value.replace(/\s/g, '');
+    if (!/^\d{11}$/.test(cleaned)) {
+      return 'CIF number must be exactly 11 digits';
+    }
+    return '';
+  },
+
+  // PAN number validation (e.g., BHTPC5667E)
+  // Format: 1st 5 chars = ALPHA (auto caps), next 4 = NUMBERS, last 1 = ALPHA
+  // 4th character always 'P', 5th character = last name initial
+  panNo: (value, lastNameInitial = '') => {
+    if (!value || value.trim() === '') {
+      return 'PAN number is required';
+    }
+    
+    const pan = value.toUpperCase().trim();
+    
+    // Check length
+    if (pan.length !== 10) {
+      return 'PAN must be exactly 10 characters';
+    }
+    
+    // Check format: AAAAA9999A
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
+      return 'Invalid PAN format (5 letters, 4 numbers, 1 letter)';
+    }
+    
+    // Check 4th character must be 'P'
+    if (pan[3] !== 'P') {
+      return '4th character of PAN must be P';
+    }
+    
+    // Check 5th character matches last name initial (if provided)
+    if (lastNameInitial && pan[4] !== lastNameInitial.toUpperCase()) {
+      return `5th character must be ${lastNameInitial.toUpperCase()} (last name initial)`;
+    }
+    
+    return '';
+  },
+
+  // Auto-format PAN to uppercase
+  formatPAN: (value) => {
+    return value.toUpperCase();
+  },
+
+  // Auto-format mobile (remove spaces)
+  formatMobile: (value) => {
+    return value.replace(/\s/g, '');
+  }
+};
