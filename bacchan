@@ -1,0 +1,30 @@
+const handleSubmit = async () => {
+
+  if (!/^\d{7}$/.test(tellerNo)) {
+    setError("Teller Number must be exactly 7 digits");
+    return;
+  }
+
+  const grp = Number(groupNo);
+  if (!(grp >= 1 && grp <= 99)) {
+    setError("Group Number must be between 1 and 99");
+    return;
+  }
+
+  const cap = Number(capLevel);
+  if (!(cap >= 1 && cap <= 16)) {
+    setError("Capability Level must be between 01 and 16");
+    return;
+  }
+
+  if (!/^[A-Za-z ]{1,20}$/.test(userName)) {
+    setError("Username must contain only alphabets and spaces (max 20)");
+    return;
+  }
+
+  if (!/^\d{5}$/.test(branchNo)) {
+    setError("Branch Number must be exactly 5 digits");
+    return;
+  }
+
+  // ⬇ existing code continues
