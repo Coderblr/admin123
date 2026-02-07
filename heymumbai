@@ -1,0 +1,142 @@
+<div style={styles.formGroup}>
+    <label style={styles.label}>Mobile Number</label>
+
+    <input
+        type="text"
+        value={mobile}
+        onChange={(e) => {
+            const value = e.target.value;
+
+            // ❌ If non-numeric entered
+            if (!/^\d*$/.test(value)) {
+                alert("Only numbers are allowed in Mobile Number");
+                return;
+            }
+
+            // ❌ More than 10 digits
+            if (value.length > 10) return;
+
+            setMobile(value);
+        }}
+        style={styles.input}
+        maxLength={10}
+        required
+    />
+
+    {mobile.length > 0 && mobile.length < 10 && (
+        <div style={styles.fieldError}>
+            Mobile number must be 10 digits
+        </div>
+    )}
+</div>
+
+
+
+const [pan, setPan] = useState("");
+const [lastName, setLastName] = useState("");
+
+
+
+<div style={styles.formGroup}>
+    <label style={styles.label}>Last Name</label>
+    <input
+        type="text"
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
+        style={styles.input}
+        required
+    />
+</div>
+
+
+
+
+
+<div style={styles.formGroup}>
+    <label style={styles.label}>PAN Number</label>
+
+    <input
+        type="text"
+        value={pan}
+        onChange={(e) => {
+            let value = e.target.value.toUpperCase();
+
+            // ❌ Length > 10 not allowed
+            if (value.length > 10) return;
+
+            // ❌ First 5 must be alphabets
+            if (value.length <= 5 && !/^[A-Z]*$/.test(value)) {
+                alert("First 5 characters must be alphabets");
+                return;
+            }
+
+            // ❌ Next 4 must be digits
+            if (value.length > 5 && value.length <= 9) {
+                if (!/^[A-Z]{5}\d*$/.test(value)) {
+                    alert("Characters 6 to 9 must be digits");
+                    return;
+                }
+            }
+
+            // ❌ Last must be alphabet
+            if (value.length === 10 && !/^[A-Z]{5}\d{4}[A-Z]$/.test(value)) {
+                alert("Last character must be an alphabet");
+                return;
+            }
+
+            // ❌ 4th character must be P
+            if (value.length >= 4 && value[3] !== "P") {
+                alert("4th character must be 'P'");
+                return;
+            }
+
+            // ❌ 5th character must match last name initial
+            if (value.length >= 5 && lastName) {
+                const lastInitial = lastName[0]?.toUpperCase();
+                if (value[4] !== lastInitial) {
+                    alert(
+                        `5th character must be '${lastInitial}' (Last Name Initial)`
+                    );
+                    return;
+                }
+            }
+
+            setPan(value);
+        }}
+        style={styles.input}
+        maxLength={10}
+        required
+    />
+
+    {pan.length > 0 && pan.length < 10 && (
+        <div style={styles.fieldError}>
+            PAN must be exactly 10 characters
+        </div>
+    )}
+</div>
+
+
+
+// PAN validation
+if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(pan)) {
+    errors.pan = "Invalid PAN format";
+}
+
+// 4th character must be P
+if (pan[3] !== "P") {
+    errors.pan = "4th character of PAN must be 'P'";
+}
+
+// 5th character must match last name initial
+if (lastName && pan[4] !== lastName[0].toUpperCase()) {
+    errors.pan = "PAN 5th character must match last name initial";
+}
+
+
+
+
+
+
+{formErrors.pan && (
+    <div style={styles.fieldError}>{formErrors.pan}</div>
+)}
