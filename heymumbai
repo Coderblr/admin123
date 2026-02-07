@@ -1,4 +1,4 @@
-<div style={styles.formGroup}>
+⁷<div style={styles.formGroup}>
     <label style={styles.label}>Mobile Number</label>
 
     <input
@@ -140,3 +140,66 @@ if (lastName && pan[4] !== lastName[0].toUpperCase()) {
 {formErrors.pan && (
     <div style={styles.fieldError}>{formErrors.pan}</div>
 )}
+
+
+
+
+
+
+
+
+
+
+async function handleSubmit(e) {
+    e.preventDefault();
+
+    // ⬇️⬇️ ADD THIS BLOCK (START) ⬇️⬇️
+    const errors = {};
+
+    // PAN format check
+    if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(pancard)) {
+        errors.pan = "Invalid PAN format";
+    }
+
+    // 4th character must be P
+    if (pancard && pancard[3] !== "P") {
+        errors.pan = "4th character of PAN must be 'P'";
+    }
+
+    // 5th character must match last name initial
+    if (lastname && pancard && pancard[4] !== lastname[0].toUpperCase()) {
+        errors.pan = "PAN 5th character must match last name initial";
+    }
+
+    // ❌ STOP SUBMIT IF ERROR EXISTS
+    if (Object.keys(errors).length > 0) {
+        setError(errors.pan);   // show error on UI
+        return;                // ⛔ STOP HERE
+    }
+    // ⬆️⬆️ ADD THIS BLOCK (END) ⬆️⬆️
+
+    // existing code continues
+    setLoading(true);
+    setError('');
+    setResponse([]);
+
+    const userToken = localStorage.getItem('userToken');
+
+    try {
+        const res = await fetch('http://10.1.161.165:5050/create_first_cif/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${userToken}`,
+            },
+            body: JSON.stringify({
+                region,
+                acc_type,
+                firstname,
+                lastname,
+                pancard,
+                mobile_no,
+            }),
+        });
+
+        ...
