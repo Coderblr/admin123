@@ -2,16 +2,14 @@ import { useState } from "react";
 import { styles } from "../../styles/AppStyles";
 
 export default function PanCifView() {
-    const [region, setRegion] = useState('O');
-    // added acc_typr, first name and last name
-    const [acc_type, setAccountType] = useState('PCIF');
-    const [firstname, setFirstName] = useState('');
-    const [lastname, setLastName] = useState('');
-    // added pan and mobile
-    const [pancard, setPan] = useState('');
-    const [mobile_no, setMobile] = useState('');
-    const [response, setResponse] = useState('');
-    const [error, setError] = useState('');
+    const [region, setRegion] = useState("O");
+    const [acc_type, setAccountType] = useState("PCIF");
+    const [firstname, setFirstName] = useState("");
+    const [lastname, setLastName] = useState("");
+    const [pancard, setPan] = useState("");
+    const [mobile_no, setMobile] = useState("");
+    const [response, setResponse] = useState([]);
+    const [error, setError] = useState("");
     const [Loading, setLoading] = useState(false);
 
     async function handleSubmit(e) {
@@ -19,194 +17,167 @@ export default function PanCifView() {
 
         const errors = {};
 
-        // PAN format check
+        // ✅ First Name validation
+        if (!/^[A-Za-z]+$/.test(firstname)) {
+            errors.name = "First Name should contain only alphabets";
+        }
+
+        // ✅ Last Name validation
+        if (!/^[A-Za-z]+$/.test(lastname)) {
+            errors.name = "Last Name should contain only alphabets";
+        }
+
+        // ✅ PAN format check
         if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(pancard)) {
             errors.pan = "Invalid PAN format";
         }
 
-        // 4th character must be P
+        // ✅ 4th character must be P
         if (pancard && pancard[3] !== "P") {
             errors.pan = "4th character of PAN must be 'P'";
         }
 
-        // 5th character must match last name initial
+        // ✅ 5th character must match last name initial
         if (lastname && pancard && pancard[4] !== lastname[0].toUpperCase()) {
             errors.pan = "PAN 5th character must match last name initial";
         }
 
-        // ❌ STOP SUBMIT IF ERROR EXISTS
+        // ❌ Stop submit if any error
         if (Object.keys(errors).length > 0) {
-            setError(errors.pan);   // show error on UI
-            return;                // ⛔ STOP HERE
-        }
-
-        setLoading(true);
-        setError('');
-        setResponse([]);
-        const userToken = localStorage.getItem('userToken');
-
-        try {
-            const res = await fetch('http://10.1.1545761.165654:505687880/create_first_cif/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-
-                    'Authorization': `Bearer ${userToken}`,
-                },
-                body: JSON.stringify({
-                    region,
-                    acc_type,
-                    firstname,
-                    lastname,
-                    pancard,
-                    mobile_no,
-                }),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.detail || 'Failed to generate cif  ');
-            }
-
-            const data = await res.json();
-            console.log("API Response Data:", data); 
-            setResponse(data);
-        } catch (err) {
-            setError(err.message);
-            console.error("Error amending cif:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const downloadCsv = () => {
-        if (!response || response.length === 0) {
-            alert("No data to download.");
+            setError(errors.name || errors.pan);
             return;
         }
 
-        let csvContent = "data:text/csv;charset=utf-8,Customer Number\n";
-        response.forEach((item) => {
-            try {
-                //const parsedResData = JSON.parse(item.res_data);
-                csvContent += `"${parsedResData.CUSTOMER_NUMBER || ""}"\n`;
-            } catch (e) {
-                console.error("CSV parse error:", e);
-            }
-        });
+        setLoading(true);
+        setError("");
+        setResponse([]);
 
-        const link = document.createElement("a");
-        link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", "cif_data.csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+        const userToken = localStorage.getItem("userToken");
+
+        try {
+            const res = await fetch(
+                "http://10.1.1545761.165654:505687880/create_first_cif/",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${userToken}`,
+                    },
+                    body: JSON.stringify({
+                        region,
+                        acc_type,
+                        firstname,
+                        lastname,
+                        pancard,
+                        mobile_no,
+                    }),
+                }
+            );
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.detail || "Failed to generate CIF");
+            }
+
+            const data = await res.json();
+            setResponse(data);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <div>
             <div style={styles.pageHeader}>
-                <div>
-                    <h1 style={styles.pageTitle}>CIF Creation</h1>
-                    <p style={styles.pageSubtitle}>Generate Customer Information Files for testing</p>
-                </div>
+                <h1 style={styles.pageTitle}>CIF Creation</h1>
+                <p style={styles.pageSubtitle}>
+                    Generate Customer Information Files for testing
+                </p>
             </div>
 
             <div style={styles.formCard}>
                 <div style={styles.formGrid}>
+                    {/* Region */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Region</label>
-                        <select value={region} onChange={(e) => setRegion(e.target.value)} style={styles.select}>
-                            <option value="X">X - UAT</option>
+                        <select
+                            value={region}
+                            onChange={(e) => setRegion(e.target.value)}
+                            style={styles.select}
+                        >
                             <option value="O">O - UAT</option>
+                            <option value="X">X - UAT</option>
                             <option value="Y">Y - UAT</option>
-                            <option value="Z">Z - UAT</option>
-                            <option value="K">K - Pre-Prod</option>
-                            <option value="J">J - Pre-Prod</option>
-                            <option value="R1">R1 - Pre-Prod</option>
-                            <option value="Y2">Y2 - Pre-Prod</option>
-                            <option value="L">L - Pre-Prod</option>
-                            <option value="C">C - Pre-Prod</option>
                         </select>
                     </div>
-                   
+
+                    {/* Account Type */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Account Type</label>
-                        <select value={acc_type} onChange={(e) => setAccountType(e.target.value)} style={styles.select}>
-                            <option value="PCIF">Personal CIF Creation</option>
-                            <option value="NPCIF">Non-Personal CIF Creation</option>
+                        <select
+                            value={acc_type}
+                            onChange={(e) => setAccountType(e.target.value)}
+                            style={styles.select}
+                        >
+                            <option value="PCIF">Personal CIF</option>
+                            <option value="NPCIF">Non-Personal CIF</option>
                         </select>
-                    </div> 
+                    </div>
 
+                    {/* First Name */}
                     <div style={styles.formGroup}>
-                            <label style={styles.label}>First Name</label>
-                            <input
-                                type="text"
-                                value={firstname}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                style={styles.input}
-                                required
-                            />
-                        </div>
+                        <label style={styles.label}>First Name</label>
+                        <input
+                            type="text"
+                            value={firstname}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (!/^[A-Za-z]*$/.test(value)) {
+                                    alert("Only alphabets allowed in First Name");
+                                    return;
+                                }
+                                setFirstName(value);
+                            }}
+                            style={styles.input}
+                            required
+                        />
+                    </div>
 
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Last Name</label>
-                            <input
-                                type="text"
-                                value={lastname}
-                                onChange={(e) => setLastName(e.target.value)}
-                                style={styles.input}
-                                required
-                            />
-                        </div>
-
+                    {/* Last Name */}
                     <div style={styles.formGroup}>
-                        <label style={styles.label}>Pan Number</label>
+                        <label style={styles.label}>Last Name</label>
+                        <input
+                            type="text"
+                            value={lastname}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (!/^[A-Za-z]*$/.test(value)) {
+                                    alert("Only alphabets allowed in Last Name");
+                                    return;
+                                }
+                                setLastName(value);
+                            }}
+                            style={styles.input}
+                            required
+                        />
+                    </div>
+
+                    {/* PAN */}
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>PAN Number</label>
                         <input
                             type="text"
                             value={pancard}
                             onChange={(e) => {
                                 let value = e.target.value.toUpperCase();
-
-                                // ❌ Length > 10 not allowed
                                 if (value.length > 10) return;
 
-                                // ❌ First 5 must be alphabets
-                                if (value.length <= 5 && !/^[A-Z]*$/.test(value)) {
-                                    alert("First 5 characters must be alphabets");
-                                    return;
-                                }
-
-                                // ❌ Next 4 must be digits
-                                if (value.length > 5 && value.length <= 9) {
-                                    if (!/^[A-Z]{5}\d*$/.test(value)) {
-                                        alert("Characters 6 to 9 must be digits");
-                                        return;
-                                    }
-                                }
-
-                                // ❌ Last must be alphabet
-                                if (value.length === 10 && !/^[A-Z]{5}\d{4}[A-Z]$/.test(value)) {
-                                    alert("Last character must be an alphabet");
-                                    return;
-                                }
-
-                                // ❌ 4th character must be P
-                                if (value.length >= 4 && value[3] !== "P") {
-                                    alert("4th character must be 'P'");
-                                    return;
-                                }
-
-                                // ❌ 5th character must match last name initial
-                                if (value.length >= 5 && lastname) {
-                                    const lastInitial = lastname[0]?.toUpperCase();
-                                    if (value[4] !== lastInitial) {
-                                        alert(
-                                            `5th character must be '${lastInitial}' (Last Name Initial)`
-                                        );
-                                        return;
-                                    }
-                                }
+                                if (value.length <= 5 && !/^[A-Z]*$/.test(value)) return;
+                                if (value.length > 5 && value.length <= 9 && !/^[A-Z]{5}\d*$/.test(value)) return;
+                                if (value.length >= 4 && value[3] !== "P") return;
+                                if (value.length >= 5 && lastname && value[4] !== lastname[0]?.toUpperCase()) return;
 
                                 setPan(value);
                             }}
@@ -214,14 +185,9 @@ export default function PanCifView() {
                             maxLength={10}
                             required
                         />
-
-                        {pancard.length > 0 && pancard.length < 10 && (
-                            <div style={styles.fieldError}>
-                                PAN must be exactly 10 characters
-                            </div>
-                        )}
                     </div>
 
+                    {/* Mobile */}
                     <div style={styles.formGroup}>
                         <label style={styles.label}>Mobile Number</label>
                         <input
@@ -229,81 +195,27 @@ export default function PanCifView() {
                             value={mobile_no}
                             onChange={(e) => {
                                 const value = e.target.value;
-
-                                // ❌ If non-numeric entered
-                                if (!/^\d*$/.test(value)) {
-                                    alert("Only numbers are allowed in Mobile Number");
-                                    return;
-                                }
-
-                                // ❌ More than 10 digits
+                                if (!/^\d*$/.test(value)) return;
                                 if (value.length > 10) return;
-
                                 setMobile(value);
                             }}
                             style={styles.input}
                             maxLength={10}
                             required
                         />
-
-                        {mobile_no.length > 0 && mobile_no.length < 10 && (
-                            <div style={styles.fieldError}>
-                                Mobile number must be 10 digits
-                            </div>
-                        )}
                     </div>
-
-
-
                 </div>
 
                 {error && <div style={styles.errorMsg}>{error}</div>}
 
-                <button onClick={handleSubmit} style={styles.primaryButton} disabled={Loading}>
+                <button
+                    onClick={handleSubmit}
+                    style={styles.primaryButton}
+                    disabled={Loading}
+                >
                     {Loading ? "Generating..." : "Generate CIF Records"}
                 </button>
             </div>
-
-            {response && response.length > 0 && (
-                <div style={styles.resultsCard}>
-                    <div style={styles.resultsHeader}>
-                        <h3 style={styles.resultsTitle}>Generated Records ({response.length})</h3>
-                        <button onClick={downloadCsv} style={styles.downloadButton}>
-                            Download CSV
-                        </button>
-                    </div>
-                    <div style={styles.resultsList}>
-                        {response.map((item, index) => {
-                            try {
-                                const parsedResData = JSON.parse(item.res_data);
-
-                                // ADDED HERE
-                                const showCifCreation = parsedResData?.ERROR_DESCRIPTION && parsedResData?.CIF_CREATION;
-                                return (
-                                    <div key={index} style={styles.resultItem}>
-                                        <div style={styles.resultNumber}>{index + 1}</div>
-                                        <div style={styles.resultContent}>
-                                            <span style={styles.resultLabel}>Customer Number:</span>
-                                            <span style={styles.resultValue}>{parsedResData.CUSTOMER_NUMBER}
-                                                {parsedResData.ERROR_DESCRIPTION && <p style={styles.errorText}><strong>Error:</strong> {parsedResData.ERROR_DESCRIPTION}</p>}
-                                                {/* added here */}
-                                                <p style={styles.errorText}><strong>Journal no./Error:</strong> {parsedResData.CIF_CREATION}</p>
-                                            </span>
-                                            
-                                        </div>
-                                    </div>
-                                );
-                            } catch (e) {
-                                return (
-                                    <div key={index} style={{ ...styles.resultItem, borderLeft: "3px solid #f44336" }}>
-                                        <span style={styles.errorText}>Error: {item.res_data}</span>
-                                    </div>
-                                );
-                            }
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
