@@ -147,3 +147,68 @@ export const validation = {
     return value.replace(/\s/g, '');
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+{/* ✅ PROFESSIONAL CONTACT SUPPORT SECTION */}
+<div
+  style={{
+    marginTop: "25px",
+    padding: "18px",
+    borderRadius: "10px",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    textAlign: "center",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+  }}
+>
+  <div style={{ fontSize: "22px", marginBottom: "8px" }}>
+    📧
+  </div>
+
+  <p
+    style={{
+      fontSize: "13px",
+      color: "#555",
+      marginBottom: "8px",
+      lineHeight: "1.5"
+    }}
+  >
+    Experiencing any issues while signing in?
+    <br />
+    Our support team is here to help.
+  </p>
+
+  <a
+    href="mailto:hfjfhj@gdjd.com"
+    style={{
+      display: "inline-block",
+      padding: "6px 12px",
+      fontSize: "13px",
+      color: "#0070f3",
+      backgroundColor: "#eef4ff",
+      borderRadius: "6px",
+      textDecoration: "none",
+      fontWeight: "500",
+      transition: "all 0.2s ease"
+    }}
+    onMouseOver={(e) => {
+      e.target.style.backgroundColor = "#dbeafe";
+    }}
+    onMouseOut={(e) => {
+      e.target.style.backgroundColor = "#eef4ff";
+    }}
+  >
+    hfjfhj@gdjd.com
+  </a>
+</div>
