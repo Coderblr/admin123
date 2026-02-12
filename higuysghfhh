@@ -1,0 +1,381 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function LoginLogsView() {
+    const [logs, setLogs] = useState([]);
+    const [search, setSearch] = useState("");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userDetails, setUserDetails] = useState(null);
+    const [userLogs, setUserLogs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const logsPerPage = 10;
+
+    const userToken =
+        typeof window !== "undefined"
+            ? localStorage.getItem("userToken")
+            : null;
+
+    /* ===============================
+       FETCH ALL LOGIN LOGS
+    =============================== */
+    async function fetchLoginLogs() {
+        setLoading(true);
+        setError("");
+
+        try {
+            const res = await fetch(
+                "http://10.1.161.165:5050/admin/login-logs",
+                {
+                    headers: {
+                        Authorization: `Bearer ${userToken}`,
+                    },
+                }
+            );
+
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+            setLogs(data);
+        } catch {
+            setError("Failed to load login logs");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    /* ===============================
+       FETCH USER DETAILS + USER LOGS
+    =============================== */
+    async function fetchUserDetails(username) {
+        try {
+            const res = await fetch(
+                `http://10.1.161.165:5050/admin/users/${username}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${userToken}`,
+                    },
+                }
+            );
+
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+
+            setUserDetails(data.user);
+            setUserLogs(data.login_logs);
+        } catch {
+            console.error("Failed to load user details");
+        }
+    }
+
+    /* ===============================
+       AUTO REFRESH EVERY 30s
+    =============================== */
+    useEffect(() => {
+        fetchLoginLogs();
+        const interval = setInterval(fetchLoginLogs, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    /* ===============================
+       FILTERS
+    =============================== */
+    const filteredLogs = logs.filter((log) => {
+        const matchesUser =
+            log.username.toLowerCase().includes(search.toLowerCase());
+
+        const logDate = new Date(log.login_time);
+        const from = fromDate ? new Date(fromDate) : null;
+        const to = toDate ? new Date(toDate) : null;
+
+        const matchesDate =
+            (!from || logDate >= from) &&
+            (!to ||
+                logDate <= new Date(new Date(to).setHours(23, 59, 59)));
+
+        return matchesUser && matchesDate;
+    });
+
+    /* ===============================
+       PAGINATION
+    =============================== */
+    const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+    const indexOfLast = currentPage * logsPerPage;
+    const indexOfFirst = indexOfLast - logsPerPage;
+    const currentLogs = filteredLogs.slice(indexOfFirst, indexOfLast);
+
+    return (
+        <div style={page}>
+            <h1 style={heading}>Login Activity Logs</h1>
+
+            {loading && <div>Loading...</div>}
+            {error && <div style={errorText}>{error}</div>}
+
+            {/* ================= FILTERS ================= */}
+            <div style={card}>
+                <div style={filtersRow}>
+                    <input
+                        type="text"
+                        placeholder="Search username..."
+                        value={search}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        style={searchInput}
+                    />
+
+                    <input
+                        type="date"
+                        value={fromDate}
+                        onChange={(e) => {
+                            setFromDate(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        style={dateInput}
+                    />
+
+                    <input
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => {
+                            setToDate(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        style={dateInput}
+                    />
+
+                    <button
+                        onClick={fetchLoginLogs}
+                        style={refreshButton}
+                    >
+                        Refresh
+                    </button>
+                </div>
+
+                {/* ================= TABLE ================= */}
+                <table style={table}>
+                    <thead>
+                        <tr>
+                            <th style={tableHeaderCell}>#</th>
+                            <th style={tableHeaderCell}>Username</th>
+                            <th style={tableHeaderCell}>Login Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {currentLogs.map((log, index) => (
+                            <tr key={index} style={tableRow}>
+                                <td style={tableCell}>
+                                    {indexOfFirst + index + 1}
+                                </td>
+                                <td
+                                    style={{
+                                        ...tableCell,
+                                        ...usernameCell,
+                                    }}
+                                    onClick={() => {
+                                        setSelectedUser(log);
+                                        fetchUserDetails(log.username);
+                                    }}
+                                >
+                                    {log.username}
+                                </td>
+                                <td style={tableCell}>
+                                    {new Date(
+                                        log.login_time
+                                    ).toLocaleString("en-IN", {
+                                        timeZone: "Asia/Kolkata",
+                                    })}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {filteredLogs.length === 0 && (
+                    <div style={noData}>
+                        No login logs found
+                    </div>
+                )}
+
+                {/* ================= PAGINATION ================= */}
+                {filteredLogs.length > 0 && (
+                    <div style={paginationContainer}>
+                        <button
+                            onClick={() =>
+                                setCurrentPage(currentPage - 1)
+                            }
+                            disabled={currentPage === 1}
+                            style={paginationButton}
+                        >
+                            Previous
+                        </button>
+
+                        <span style={paginationInfo}>
+                            Page {currentPage} of {totalPages}
+                        </span>
+
+                        <button
+                            onClick={() =>
+                                setCurrentPage(currentPage + 1)
+                            }
+                            disabled={currentPage === totalPages}
+                            style={paginationButton}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* ================= USER DETAILS ================= */}
+            {userDetails && (
+                <div style={card}>
+                    <h2 style={cardTitle}>User Details</h2>
+
+                    <p><strong>Username:</strong> {userDetails.username}</p>
+                    <p><strong>First Name:</strong> {userDetails.firstName}</p>
+                    <p><strong>Last Name:</strong> {userDetails.lastName}</p>
+                    <p><strong>Department:</strong> {userDetails.departmentCode}</p>
+                    <p><strong>User Type:</strong> {userDetails.userType}</p>
+
+                    <p>
+                        <strong>Total Logins:</strong>{" "}
+                        {userLogs.length}
+                    </p>
+
+                    <p>
+                        <strong>Last Login:</strong>{" "}
+                        {userLogs.length > 0
+                            ? new Date(
+                                  userLogs[0].login_time
+                              ).toLocaleString("en-IN", {
+                                  timeZone: "Asia/Kolkata",
+                              })
+                            : "No logins found"}
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ===============================
+   STYLES (UNCHANGED STRUCTURE)
+=============================== */
+
+const page = {
+    padding: "32px",
+    backgroundColor: "#f4f6f8",
+    minHeight: "100vh",
+};
+
+const heading = {
+    fontSize: "28px",
+    fontWeight: "600",
+    marginBottom: "24px",
+};
+
+const card = {
+    background: "#fff",
+    padding: "24px",
+    borderRadius: "10px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+    marginBottom: "24px",
+};
+
+const cardTitle = {
+    fontSize: "18px",
+    fontWeight: "600",
+    marginBottom: "12px",
+};
+
+const filtersRow = {
+    display: "flex",
+    gap: "12px",
+    marginBottom: "16px",
+    flexWrap: "wrap",
+};
+
+const searchInput = {
+    padding: "8px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+};
+
+const dateInput = {
+    padding: "8px 12px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+};
+
+const refreshButton = {
+    padding: "8px 16px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    backgroundColor: "#fff",
+    cursor: "pointer",
+};
+
+const table = {
+    width: "100%",
+    borderCollapse: "collapse",
+};
+
+const tableHeaderCell = {
+    padding: "12px",
+    borderBottom: "2px solid #e5e7eb",
+    textAlign: "left",
+};
+
+const tableRow = {
+    borderBottom: "1px solid #e5e7eb",
+};
+
+const tableCell = {
+    padding: "12px",
+};
+
+const usernameCell = {
+    fontWeight: "600",
+    color: "#1d4ed8",
+    cursor: "pointer",
+};
+
+const paginationContainer = {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "16px",
+    marginTop: "20px",
+};
+
+const paginationButton = {
+    padding: "8px 16px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    backgroundColor: "#fff",
+    cursor: "pointer",
+};
+
+const paginationInfo = {
+    fontSize: "14px",
+    fontWeight: "500",
+};
+
+const noData = {
+    marginTop: "16px",
+    textAlign: "center",
+    color: "#666",
+};
+
+const errorText = {
+    color: "red",
+    marginBottom: "12px",
+};
