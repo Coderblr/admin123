@@ -1,0 +1,12 @@
+# — Step 2: Check account lockout FIRST —
+db_user = session.get(User.DBUser, raw_username)
+
+if db_user:
+    # ✅ ADD THIS BLOCK
+    if db_user.disabled:
+        raise HTTPException(
+            status_code=403,
+            detail="User is locked. Please contact admin."
+        )
+
+    Security.check_account_locked(db_user)  # existing
