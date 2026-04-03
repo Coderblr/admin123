@@ -1,13 +1,69 @@
-<button
-  type="submit"
-  style={{
-    ...styles.primaryButton,
-    transform: isLoading ? "scale(0.95)" : "scale(1)",
-    opacity: isLoading ? 0.7 : 1,
-    cursor: isLoading ? "not-allowed" : "pointer",
-    transition: "all 0.2s ease"
-  }}
-  disabled={isLoading}
->
-  {isLoading ? "Fetching..." : "Fetch Account Details"}
-</button>
+import { useState } from "react";
+
+export default function ChangePasswordPage({ onNavigate }) {
+    const [current_password, setCurrentPassword] = useState("");
+    const [new_password, setNewPassword] = useState("");
+    const [confirm_password, setConfirmPassword] = useState("");
+    const [error, setError] = useState("");
+
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const res = await fetch(`${BASE_URL}/change-password`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                current_password,
+                new_password,
+                confirm_password
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert("Password changed. Please login again.");
+            onNavigate("login");
+        } else {
+            setError(data.detail);
+        }
+    };
+
+    return (
+        <div style={{ padding: "40px" }}>
+            <h2>Change Password</h2>
+
+            <form onSubmit={handleSubmit}>
+                <input
+                    type="password"
+                    placeholder="Current Password"
+                    value={current_password}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+
+                <input
+                    type="password"
+                    placeholder="New Password"
+                    value={new_password}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                />
+
+                <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={confirm_password}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+
+                {error && <div style={{ color: "red" }}>{error}</div>}
+
+                <button type="submit">Change Password</button>
+            </form>
+        </div>
+    );
+}
