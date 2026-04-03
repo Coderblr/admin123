@@ -1,179 +1,244 @@
+"use client";
+
 import { useState } from "react";
 
-export default function ChangePasswordPage({ onNavigate }) {
-    const [current_password, setCurrentPassword] = useState("");
-    const [new_password, setNewPassword] = useState("");
-    const [confirm_password, setConfirmPassword] = useState("");
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+const departments = [
+  { label: "IT-Trade Finance & SCF (171)", value: "171" },
+  { label: "IT-Corporate & SME Loans (450)", value: "450" },
+  { label: "IT-Retail Loans (382)", value: "382" },
+  { label: "IT-Agri Tech (462)", value: "462" },
+  { label: "IT-Tech Operations Loans (476)", value: "476" },
+  { label: "IT-Special Projects - Government (375)", value: "375" },
+  { label: "IT-Special Projects - Audit & Websites (394)", value: "394" },
+  { label: "IT-Regulatory Applications (475)", value: "475" },
+  { label: "IT-JVS & Partnerships (488)", value: "488" },
+];
 
-    const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const userTypes = [
+  { label: "Admin", value: "1" },
+  { label: "User", value: "3" },
+];
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
+export default function AdminUserCreateView() {
+  const [form, setForm] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+    departmentCode: "",
+    userType: "",
+    default_password: "",
+  });
 
-        const res = await fetch(`${BASE_URL}/change-password`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                current_password,
-                new_password,
-                confirm_password
-            })
-        });
+  const [response, setResponse] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-        const data = await res.json();
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-        if (res.ok) {
-            alert("Password changed successfully. Please login again.");
-            onNavigate("login");
-        } else {
-            setError(data.detail || "Something went wrong");
-        }
+  // ✅ HANDLE CHANGE
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-        setLoading(false);
-    };
+    setForm({
+      ...form,
+      [name]: value,
+    });
 
-    return (
-        <div style={styles.container}>
-            <div style={styles.card}>
-                <h2 style={styles.title}>Change Password</h2>
-                <p style={styles.subtitle}>
-                    For security reasons, please update your password
-                </p>
+    // remove error on typing
+    setErrors({
+      ...errors,
+      [name]: "",
+    });
+  };
 
-                <form onSubmit={handleSubmit} style={styles.form}>
-                    
-                    {/* Current Password */}
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Current Password</label>
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            value={current_password}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            style={styles.input}
-                            required
-                        />
-                    </div>
+  // ✅ VALIDATION
+  const validateForm = () => {
+    let newErrors = {};
 
-                    {/* New Password */}
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>New Password</label>
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            value={new_password}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            style={styles.input}
-                            required
-                        />
-                    </div>
+    if (!form.username) {
+      newErrors.username = "Username is required";
+    } else if (form.username.length < 4) {
+      newErrors.username = "Minimum 4 characters required";
+    }
 
-                    {/* Confirm Password */}
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Confirm Password</label>
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            value={confirm_password}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            style={styles.input}
-                            required
-                        />
-                    </div>
+    if (!form.firstName) {
+      newErrors.firstName = "First name is required";
+    } else if (!/^[A-Za-z]+$/.test(form.firstName)) {
+      newErrors.firstName = "Only alphabets allowed";
+    }
 
-                    {/* Show Password Toggle */}
-                    <div style={styles.toggle}>
-                        <input
-                            type="checkbox"
-                            onChange={() => setShowPassword(!showPassword)}
-                        />
-                        <span style={{ marginLeft: "8px" }}>Show Password</span>
-                    </div>
+    if (!form.lastName) {
+      newErrors.lastName = "Last name is required";
+    } else if (!/^[A-Za-z]+$/.test(form.lastName)) {
+      newErrors.lastName = "Only alphabets allowed";
+    }
 
-                    {/* Error */}
-                    {error && <div style={styles.error}>{error}</div>}
+    if (!form.departmentCode) {
+      newErrors.departmentCode = "Please select department";
+    }
 
-                    {/* Button */}
-                    <button type="submit" style={styles.button} disabled={loading}>
-                        {loading ? "Updating..." : "Change Password"}
-                    </button>
-                </form>
-            </div>
+    if (!form.userType) {
+      newErrors.userType = "Please select user type";
+    }
+
+    if (form.default_password && form.default_password.length < 6) {
+      newErrors.default_password = "Minimum 6 characters required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ✅ SUBMIT
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError("");
+    setResponse(null);
+
+    try {
+      const res = await fetch(`${BASE_URL}/admin/users/create`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.detail || "Unable to create user");
+        return;
+      }
+
+      setResponse(data);
+      setErrors({});
+    } catch (err) {
+      setError("Server connection failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ COPY PASSWORD
+  const copyPassword = () => {
+    navigator.clipboard.writeText(response?.temporary_password);
+    alert("Temporary password copied");
+  };
+
+  return (
+    <div style={pageWrapper}>
+      <div style={card}>
+        <h2>Create New User</h2>
+
+        <div style={formGrid}>
+          <Input label="Username" name="username" value={form.username} onChange={handleChange} error={errors.username} />
+          <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={errors.firstName} />
+          <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={errors.lastName} />
+
+          {/* Department */}
+          <div style={field}>
+            <label style={label}>Department</label>
+            <select
+              name="departmentCode"
+              value={form.departmentCode}
+              onChange={handleChange}
+              style={{
+                ...input,
+                border: errors.departmentCode ? "1px solid red" : input.border,
+              }}
+            >
+              <option value="">Select Department</option>
+              {departments.map((dep) => (
+                <option key={dep.value} value={dep.value}>
+                  {dep.label}
+                </option>
+              ))}
+            </select>
+            {errors.departmentCode && <span style={errorText}>{errors.departmentCode}</span>}
+          </div>
+
+          {/* User Type */}
+          <div style={field}>
+            <label style={label}>User Type</label>
+            <select
+              name="userType"
+              value={form.userType}
+              onChange={handleChange}
+              style={{
+                ...input,
+                border: errors.userType ? "1px solid red" : input.border,
+              }}
+            >
+              <option value="">Select User Type</option>
+              {userTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            {errors.userType && <span style={errorText}>{errors.userType}</span>}
+          </div>
+
+          <Input
+            label="Default Password (Optional)"
+            name="default_password"
+            value={form.default_password}
+            onChange={handleChange}
+            error={errors.default_password}
+          />
         </div>
-    );
+
+        <button onClick={handleSubmit} disabled={loading} style={button}>
+          {loading ? "Creating..." : "Create User"}
+        </button>
+      </div>
+
+      {/* SUCCESS */}
+      {response && (
+        <div style={successBox}>
+          <h3>User Created Successfully</h3>
+          <p>Username: {response.username}</p>
+          <p>Password: {response.temporary_password}</p>
+          <button onClick={copyPassword}>Copy Password</button>
+        </div>
+      )}
+
+      {/* ERROR */}
+      {error && <div style={errorBox}>{error}</div>}
+    </div>
+  );
 }
 
-const styles = {
-    container: {
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        background: "linear-gradient(135deg, #0a3d62, #3c6382)"
-    },
-    card: {
-        background: "#fff",
-        padding: "40px",
-        borderRadius: "12px",
-        width: "380px",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-    },
-    title: {
-        marginBottom: "8px",
-        color: "#0a3d62",
-        textAlign: "center"
-    },
-    subtitle: {
-        fontSize: "14px",
-        color: "#555",
-        marginBottom: "20px",
-        textAlign: "center"
-    },
-    form: {
-        display: "flex",
-        flexDirection: "column"
-    },
-    inputGroup: {
-        marginBottom: "15px"
-    },
-    label: {
-        fontSize: "13px",
-        marginBottom: "5px",
-        display: "block",
-        color: "#333"
-    },
-    input: {
-        width: "100%",
-        padding: "10px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-        outline: "none",
-        fontSize: "14px"
-    },
-    toggle: {
-        display: "flex",
-        alignItems: "center",
-        marginBottom: "15px",
-        fontSize: "13px"
-    },
-    button: {
-        background: "#0a3d62",
-        color: "#fff",
-        padding: "12px",
-        border: "none",
-        borderRadius: "6px",
-        cursor: "pointer",
-        fontWeight: "bold",
-        transition: "0.3s"
-    },
-    error: {
-        color: "red",
-        fontSize: "13px",
-        marginBottom: "10px"
-    }
-};
+/* ✅ INPUT COMPONENT */
+function Input({ label: lbl, name, value, onChange, error }) {
+  return (
+    <div style={field}>
+      <label style={label}>{lbl}</label>
+      <input
+        name={name}
+        value={value}
+        onChange={onChange}
+        style={{
+          ...input,
+          border: error ? "1px solid red" : input.border,
+        }}
+      />
+      {error && <span style={errorText}>{error}</span>}
+    </div>
+  );
+}
+
+/* ✅ STYLES */
+const pageWrapper = { padding: "40px" };
+const card = { background: "#fff", padding: "20px", borderRadius: "10px" };
+const formGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" };
+const field = { display: "flex", flexDirection: "column" };
+const label = { marginBottom: "5px" };
+const input = { padding: "10px", border: "1px solid #ccc", borderRadius: "5px" };
+const button = { marginTop: "20px", padding: "10px 20px", background: "#2563eb", color: "#fff", border: "none" };
+const errorText = { color: "red", fontSize: "12px", marginTop: "4px" };
+const errorBox = { marginTop: "20px", color: "red" };
+const successBox = { marginTop: "20px", background: "#e6fffa", padding: "15px" };
