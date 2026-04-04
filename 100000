@@ -3,16 +3,6 @@
 import { useState } from "react";
 
 export default function AdminUserCreateView() {
-  const departments = [
-    { label: "IT-Trade Finance & SCF (171)", value: "171" },
-    { label: "IT-Corporate & SME Loans (450)", value: "450" },
-    { label: "IT-Retail Loans (382)", value: "382" },
-  ];
-
-  const userTypes = [
-    { label: "Admin", value: "1" },
-    { label: "User", value: "3" },
-  ];
 
   const [form, setForm] = useState({
     username: "",
@@ -29,21 +19,33 @@ export default function AdminUserCreateView() {
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+  const departments = [
+    { label: "IT-Trade Finance & SCF (171)", value: "171" },
+    { label: "IT-Corporate & SME Loans (450)", value: "450" },
+    { label: "IT-Retail Loans (382)", value: "382" },
+  ];
+
+  const userTypes = [
+    { label: "Admin", value: "1" },
+    { label: "User", value: "3" },
+  ];
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // ✅ VALIDATION
   const validateForm = () => {
     let newErrors = {};
 
     if (!/^[a-zA-Z0-9]{1,16}$/.test(form.username))
-      newErrors.username = "Alphanumeric only (max 16 chars)";
+      newErrors.username = "Only letters & numbers (max 16)";
 
     if (!/^[A-Za-z]{1,20}$/.test(form.firstName))
-      newErrors.firstName = "Letters only (max 20)";
+      newErrors.firstName = "Only letters (max 20)";
 
     if (!/^[A-Za-z]{1,20}$/.test(form.lastName))
-      newErrors.lastName = "Letters only (max 20)";
+      newErrors.lastName = "Only letters (max 20)";
 
     if (!form.departmentCode)
       newErrors.departmentCode = "Select department";
@@ -81,183 +83,183 @@ export default function AdminUserCreateView() {
       }
 
       setResponse(data);
+
     } catch {
-      setError({ api: "Server connection failed" });
+      setError({ api: "Server error" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <div className="page">
-        <div className="card">
-          <h2>Create User</h2>
-          <p className="subtitle">
-            Create a system user and generate a temporary password
+    <div style={pageWrapper}>
+      <div style={card}>
+
+        <div style={cardHeader}>
+          <h2 style={title}>Create User</h2>
+          <p style={subtitle}>
+            Create a system user and generate temporary credentials
           </p>
+        </div>
 
-          <div className="formGrid">
-            <Input label="Username" name="username" value={form.username} onChange={handleChange} error={error.username} />
+        <div style={formGrid}>
+          <Input label="Username" name="username" value={form.username} onChange={handleChange} error={error.username} />
+          <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={error.firstName} />
+          <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={error.lastName} />
 
-            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={error.firstName} />
-
-            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={error.lastName} />
-
-            <div className="field">
-              <label>Department</label>
-              <select name="departmentCode" value={form.departmentCode} onChange={handleChange}>
-                <option value="">Select Department</option>
-                {departments.map((dep) => (
-                  <option key={dep.value} value={dep.value}>{dep.label}</option>
-                ))}
-              </select>
-              {error.departmentCode && <span className="error">{error.departmentCode}</span>}
-            </div>
-
-            <div className="field">
-              <label>User Type</label>
-              <select name="userType" value={form.userType} onChange={handleChange}>
-                <option value="">Select User Type</option>
-                {userTypes.map((type) => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-              {error.userType && <span className="error">{error.userType}</span>}
-            </div>
-
-            <Input label="Default Password (Optional)" name="default_password" value={form.default_password} onChange={handleChange} error={error.default_password} />
+          <div style={field}>
+            <label style={label}>Department</label>
+            <select name="departmentCode" value={form.departmentCode} onChange={handleChange} style={input}>
+              <option value="">Select Department</option>
+              {departments.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+            {error.departmentCode && <span style={errorText}>{error.departmentCode}</span>}
           </div>
 
-          <button onClick={handleSubmit} disabled={loading} className="submitBtn">
+          <div style={field}>
+            <label style={label}>User Type</label>
+            <select name="userType" value={form.userType} onChange={handleChange} style={input}>
+              <option value="">Select User Type</option>
+              {userTypes.map((u) => (
+                <option key={u.value} value={u.value}>{u.label}</option>
+              ))}
+            </select>
+            {error.userType && <span style={errorText}>{error.userType}</span>}
+          </div>
+
+          <Input label="Default Password (Optional)" name="default_password" value={form.default_password} onChange={handleChange} error={error.default_password} />
+        </div>
+
+        <div style={buttonRow}>
+          <button onClick={handleSubmit} disabled={loading} style={submitButton}>
             {loading ? "Creating..." : "Create User"}
           </button>
-
-          {error.api && <div className="errorBox">{error.api}</div>}
-
-          {response && (
-            <div className="successBox">
-              <h3>User Created Successfully</h3>
-              <p><strong>Username:</strong> {response.username}</p>
-              <p><strong>Password:</strong> {response.temporary_password}</p>
-            </div>
-          )}
         </div>
+
+        {error.api && <div style={errorBox}>{error.api}</div>}
+
+        {response && (
+          <div style={successCard}>
+            <h4>User Created</h4>
+            <p><b>Username:</b> {response.username}</p>
+            <p><b>Password:</b> {response.temporary_password}</p>
+          </div>
+        )}
+
       </div>
-
-      {/* ✅ INTERNAL CSS */}
-      <style jsx>{`
-        .page {
-          padding: 40px;
-          display: flex;
-          justify-content: center;
-          background: #f4f6f8;
-          min-height: 100vh;
-        }
-
-        .card {
-          width: 900px;
-          background: #ffffff;
-          padding: 30px 40px;
-          border-radius: 12px;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-        }
-
-        h2 {
-          margin-bottom: 5px;
-          font-size: 24px;
-          font-weight: 700;
-        }
-
-        .subtitle {
-          color: #6b7280;
-          font-size: 14px;
-          margin-bottom: 25px;
-        }
-
-        .formGrid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-        }
-
-        label {
-          font-size: 13px;
-          font-weight: 600;
-          margin-bottom: 6px;
-        }
-
-        input,
-        select {
-          padding: 10px;
-          border-radius: 6px;
-          border: 1px solid #cbd5e1;
-          font-size: 14px;
-        }
-
-        input:focus,
-        select:focus {
-          border-color: #2563eb;
-          outline: none;
-        }
-
-        .error {
-          color: #ef4444;
-          font-size: 12px;
-          margin-top: 4px;
-        }
-
-        .submitBtn {
-          margin-top: 30px;
-          width: 100%;
-          padding: 12px;
-          background: #2563eb;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .submitBtn:hover {
-          background: #1e40af;
-        }
-
-        .errorBox {
-          margin-top: 20px;
-          padding: 12px;
-          background: #fee2e2;
-          border: 1px solid #ef4444;
-          border-radius: 6px;
-          color: #b91c1c;
-        }
-
-        .successBox {
-          margin-top: 20px;
-          padding: 15px;
-          background: #dcfce7;
-          border: 1px solid #22c55e;
-          border-radius: 6px;
-          color: #166534;
-        }
-      `}</style>
-    </>
-  );
-}
-
-// 🔹 Input Component
-function Input({ label, name, value, onChange, error }) {
-  return (
-    <div className="field">
-      <label>{label}</label>
-      <input name={name} value={value} onChange={onChange} />
-      {error && <span className="error">{error}</span>}
     </div>
   );
 }
+
+// ✅ Input Component
+function Input({ label: lbl, name, value, onChange, error }) {
+  return (
+    <div style={field}>
+      <label style={label}>{lbl}</label>
+      <input
+        name={name}
+        value={value}
+        onChange={onChange}
+        style={{
+          ...input,
+          border: error ? "1px solid red" : input.border,
+        }}
+      />
+      {error && <span style={errorText}>{error}</span>}
+    </div>
+  );
+}
+
+/* ================= STYLES ================= */
+
+const pageWrapper = {
+  padding: "30px 40px",
+  background: "#f5f7fa",
+  minHeight: "100vh",
+};
+
+const card = {
+  background: "#fff",
+  borderRadius: "12px",
+  padding: "25px 30px",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+  maxWidth: "1000px",
+};
+
+const cardHeader = {
+  marginBottom: "20px",
+};
+
+const title = {
+  fontSize: "22px",
+  fontWeight: "700",
+};
+
+const subtitle = {
+  fontSize: "13px",
+  color: "#6b7280",
+};
+
+const formGrid = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "18px",
+};
+
+const field = {
+  display: "flex",
+  flexDirection: "column",
+};
+
+const label = {
+  fontSize: "12px",
+  fontWeight: "600",
+  marginBottom: "6px",
+};
+
+const input = {
+  padding: "10px",
+  borderRadius: "6px",
+  border: "1px solid #d1d5db",
+  fontSize: "14px",
+};
+
+const errorText = {
+  color: "#ef4444",
+  fontSize: "12px",
+  marginTop: "4px",
+};
+
+const buttonRow = {
+  marginTop: "25px",
+};
+
+const submitButton = {
+  padding: "10px 18px",
+  background: "#2563eb",
+  color: "#fff",
+  border: "none",
+  borderRadius: "6px",
+  fontSize: "14px",
+  fontWeight: "600",
+  cursor: "pointer",
+};
+
+const errorBox = {
+  marginTop: "15px",
+  padding: "12px",
+  background: "#fef2f2",
+  border: "1px solid #ef4444",
+  borderRadius: "6px",
+  color: "#b91c1c",
+};
+
+const successCard = {
+  marginTop: "20px",
+  padding: "15px",
+  background: "#ecfdf5",
+  border: "1px solid #10b981",
+  borderRadius: "8px",
+};
