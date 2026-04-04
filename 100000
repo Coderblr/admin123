@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 
-const departments = [
-  { label: "IT-Trade Finance & SCF (171)", value: "171" },
-  { label: "IT-Corporate & SME Loans (450)", value: "450" },
-  { label: "IT-Retail Loans (382)", value: "382" },
-];
-
-const userTypes = [
-  { label: "Admin", value: "1" },
-  { label: "User", value: "3" },
-];
-
 export default function AdminUserCreateView() {
+  const departments = [
+    { label: "IT-Trade Finance & SCF (171)", value: "171" },
+    { label: "IT-Corporate & SME Loans (450)", value: "450" },
+    { label: "IT-Retail Loans (382)", value: "382" },
+  ];
+
+  const userTypes = [
+    { label: "Admin", value: "1" },
+    { label: "User", value: "3" },
+  ];
+
   const [form, setForm] = useState({
     username: "",
     firstName: "",
@@ -23,7 +23,7 @@ export default function AdminUserCreateView() {
     default_password: "",
   });
 
-  const [errors, setErrors] = useState({});
+  const [error, setError] = useState({});
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
 
@@ -36,37 +36,25 @@ export default function AdminUserCreateView() {
   const validateForm = () => {
     let newErrors = {};
 
-    // Username
-    if (!/^[a-zA-Z0-9]{1,16}$/.test(form.username)) {
+    if (!/^[a-zA-Z0-9]{1,16}$/.test(form.username))
       newErrors.username = "Alphanumeric only (max 16 chars)";
-    }
 
-    // First Name
-    if (!/^[A-Za-z]{1,20}$/.test(form.firstName)) {
+    if (!/^[A-Za-z]{1,20}$/.test(form.firstName))
       newErrors.firstName = "Letters only (max 20)";
-    }
 
-    // Last Name
-    if (!/^[A-Za-z]{1,20}$/.test(form.lastName)) {
+    if (!/^[A-Za-z]{1,20}$/.test(form.lastName))
       newErrors.lastName = "Letters only (max 20)";
-    }
 
-    // Department
-    if (!form.departmentCode) {
+    if (!form.departmentCode)
       newErrors.departmentCode = "Select department";
-    }
 
-    // User Type
-    if (!form.userType) {
+    if (!form.userType)
       newErrors.userType = "Select user type";
-    }
 
-    // Default Password (optional)
-    if (form.default_password && form.default_password.length > 15) {
+    if (form.default_password && form.default_password.length > 15)
       newErrors.default_password = "Max 15 characters allowed";
-    }
 
-    setErrors(newErrors);
+    setError(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -74,7 +62,7 @@ export default function AdminUserCreateView() {
     if (!validateForm()) return;
 
     setLoading(true);
-    setErrors({});
+    setError({});
     setResponse(null);
 
     try {
@@ -88,99 +76,188 @@ export default function AdminUserCreateView() {
       const data = await res.json();
 
       if (!res.ok) {
-        setErrors({ api: data.detail || "Failed to create user" });
+        setError({ api: data.detail || "Failed to create user" });
         return;
       }
 
       setResponse(data);
     } catch {
-      setErrors({ api: "Server connection failed" });
+      setError({ api: "Server connection failed" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
-      <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-2xl">
-        <h2 className="text-2xl font-bold mb-2">Create User</h2>
-        <p className="text-gray-500 mb-6">
-          Fill all details to create a system user
-        </p>
+    <>
+      <div className="page">
+        <div className="card">
+          <h2>Create User</h2>
+          <p className="subtitle">
+            Create a system user and generate a temporary password
+          </p>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Username" name="username" value={form.username} onChange={handleChange} error={errors.username} />
+          <div className="formGrid">
+            <Input label="Username" name="username" value={form.username} onChange={handleChange} error={error.username} />
 
-          <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={errors.firstName} />
+            <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={error.firstName} />
 
-          <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={errors.lastName} />
+            <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={error.lastName} />
 
-          <Select label="Department" name="departmentCode" value={form.departmentCode} onChange={handleChange} options={departments} error={errors.departmentCode} />
+            <div className="field">
+              <label>Department</label>
+              <select name="departmentCode" value={form.departmentCode} onChange={handleChange}>
+                <option value="">Select Department</option>
+                {departments.map((dep) => (
+                  <option key={dep.value} value={dep.value}>{dep.label}</option>
+                ))}
+              </select>
+              {error.departmentCode && <span className="error">{error.departmentCode}</span>}
+            </div>
 
-          <Select label="User Type" name="userType" value={form.userType} onChange={handleChange} options={userTypes} error={errors.userType} />
+            <div className="field">
+              <label>User Type</label>
+              <select name="userType" value={form.userType} onChange={handleChange}>
+                <option value="">Select User Type</option>
+                {userTypes.map((type) => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+              {error.userType && <span className="error">{error.userType}</span>}
+            </div>
 
-          <Input label="Default Password (Optional)" name="default_password" value={form.default_password} onChange={handleChange} error={errors.default_password} />
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
-        >
-          {loading ? "Creating..." : "Create User"}
-        </button>
-
-        {errors.api && (
-          <div className="mt-4 text-red-600">{errors.api}</div>
-        )}
-
-        {response && (
-          <div className="mt-6 p-4 bg-green-100 rounded">
-            <h3 className="font-semibold">User Created Successfully</h3>
-            <p>Username: {response.username}</p>
-            <p>Password: {response.temporary_password}</p>
+            <Input label="Default Password (Optional)" name="default_password" value={form.default_password} onChange={handleChange} error={error.default_password} />
           </div>
-        )}
+
+          <button onClick={handleSubmit} disabled={loading} className="submitBtn">
+            {loading ? "Creating..." : "Create User"}
+          </button>
+
+          {error.api && <div className="errorBox">{error.api}</div>}
+
+          {response && (
+            <div className="successBox">
+              <h3>User Created Successfully</h3>
+              <p><strong>Username:</strong> {response.username}</p>
+              <p><strong>Password:</strong> {response.temporary_password}</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* ✅ INTERNAL CSS */}
+      <style jsx>{`
+        .page {
+          padding: 40px;
+          display: flex;
+          justify-content: center;
+          background: #f4f6f8;
+          min-height: 100vh;
+        }
+
+        .card {
+          width: 900px;
+          background: #ffffff;
+          padding: 30px 40px;
+          border-radius: 12px;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+          margin-bottom: 5px;
+          font-size: 24px;
+          font-weight: 700;
+        }
+
+        .subtitle {
+          color: #6b7280;
+          font-size: 14px;
+          margin-bottom: 25px;
+        }
+
+        .formGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+
+        .field {
+          display: flex;
+          flex-direction: column;
+        }
+
+        label {
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 6px;
+        }
+
+        input,
+        select {
+          padding: 10px;
+          border-radius: 6px;
+          border: 1px solid #cbd5e1;
+          font-size: 14px;
+        }
+
+        input:focus,
+        select:focus {
+          border-color: #2563eb;
+          outline: none;
+        }
+
+        .error {
+          color: #ef4444;
+          font-size: 12px;
+          margin-top: 4px;
+        }
+
+        .submitBtn {
+          margin-top: 30px;
+          width: 100%;
+          padding: 12px;
+          background: #2563eb;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .submitBtn:hover {
+          background: #1e40af;
+        }
+
+        .errorBox {
+          margin-top: 20px;
+          padding: 12px;
+          background: #fee2e2;
+          border: 1px solid #ef4444;
+          border-radius: 6px;
+          color: #b91c1c;
+        }
+
+        .successBox {
+          margin-top: 20px;
+          padding: 15px;
+          background: #dcfce7;
+          border: 1px solid #22c55e;
+          border-radius: 6px;
+          color: #166534;
+        }
+      `}</style>
+    </>
   );
 }
 
 // 🔹 Input Component
 function Input({ label, name, value, onChange, error }) {
   return (
-    <div className="flex flex-col">
-      <label className="text-sm font-medium mb-1">{label}</label>
-      <input
-        name={name}
-        value={value}
-        onChange={onChange}
-        className={`border p-2 rounded ${error ? "border-red-500" : ""}`}
-      />
-      {error && <span className="text-red-500 text-xs">{error}</span>}
-    </div>
-  );
-}
-
-// 🔹 Select Component
-function Select({ label, name, value, onChange, options, error }) {
-  return (
-    <div className="flex flex-col">
-      <label className="text-sm font-medium mb-1">{label}</label>
-      <select
-        name={name}
-        value={value}
-        onChange={onChange}
-        className={`border p-2 rounded ${error ? "border-red-500" : ""}`}
-      >
-        <option value="">Select</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      {error && <span className="text-red-500 text-xs">{error}</span>}
+    <div className="field">
+      <label>{label}</label>
+      <input name={name} value={value} onChange={onChange} />
+      {error && <span className="error">{error}</span>}
     </div>
   );
 }
