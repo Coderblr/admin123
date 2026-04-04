@@ -1,24 +1,186 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+"use client";
 
-const fetchDashboardData = async () => {
-  try {
-    const [ctfRes, ccodRes, depositRes] = await Promise.all([
-      fetch(`${BASE_URL}/ctf?userId=${user.id}`),
-      fetch(`${BASE_URL}/ccod?userId=${user.id}`),
-      fetch(`${BASE_URL}/deposits?userId=${user.id}`),
-    ]);
+import { useState } from "react";
 
-    const ctfData = await ctfRes.json();
-    const ccodData = await ccodRes.json();
-    const depositData = await depositRes.json();
+const departments = [
+  { label: "IT-Trade Finance & SCF (171)", value: "171" },
+  { label: "IT-Corporate & SME Loans (450)", value: "450" },
+  { label: "IT-Retail Loans (382)", value: "382" },
+];
 
-    setDashboardData({
-      ctfCount: ctfData?.length || 0,
-      ccodCount: ccodData?.length || 0,
-      depositCount: depositData?.length || 0,
-    });
+const userTypes = [
+  { label: "Admin", value: "1" },
+  { label: "User", value: "3" },
+];
 
-  } catch (error) {
-    console.error("Dashboard error:", error);
-  }
-};
+export default function AdminUserCreateView() {
+  const [form, setForm] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+    departmentCode: "",
+    userType: "",
+    default_password: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState(null);
+
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const validateForm = () => {
+    let newErrors = {};
+
+    // Username
+    if (!/^[a-zA-Z0-9]{1,16}$/.test(form.username)) {
+      newErrors.username = "Alphanumeric only (max 16 chars)";
+    }
+
+    // First Name
+    if (!/^[A-Za-z]{1,20}$/.test(form.firstName)) {
+      newErrors.firstName = "Letters only (max 20)";
+    }
+
+    // Last Name
+    if (!/^[A-Za-z]{1,20}$/.test(form.lastName)) {
+      newErrors.lastName = "Letters only (max 20)";
+    }
+
+    // Department
+    if (!form.departmentCode) {
+      newErrors.departmentCode = "Select department";
+    }
+
+    // User Type
+    if (!form.userType) {
+      newErrors.userType = "Select user type";
+    }
+
+    // Default Password (optional)
+    if (form.default_password && form.default_password.length > 15) {
+      newErrors.default_password = "Max 15 characters allowed";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setErrors({});
+    setResponse(null);
+
+    try {
+      const res = await fetch(`${BASE_URL}/admin/users`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrors({ api: data.detail || "Failed to create user" });
+        return;
+      }
+
+      setResponse(data);
+    } catch {
+      setErrors({ api: "Server connection failed" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
+      <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-2xl">
+        <h2 className="text-2xl font-bold mb-2">Create User</h2>
+        <p className="text-gray-500 mb-6">
+          Fill all details to create a system user
+        </p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Username" name="username" value={form.username} onChange={handleChange} error={errors.username} />
+
+          <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={errors.firstName} />
+
+          <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={errors.lastName} />
+
+          <Select label="Department" name="departmentCode" value={form.departmentCode} onChange={handleChange} options={departments} error={errors.departmentCode} />
+
+          <Select label="User Type" name="userType" value={form.userType} onChange={handleChange} options={userTypes} error={errors.userType} />
+
+          <Input label="Default Password (Optional)" name="default_password" value={form.default_password} onChange={handleChange} error={errors.default_password} />
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+        >
+          {loading ? "Creating..." : "Create User"}
+        </button>
+
+        {errors.api && (
+          <div className="mt-4 text-red-600">{errors.api}</div>
+        )}
+
+        {response && (
+          <div className="mt-6 p-4 bg-green-100 rounded">
+            <h3 className="font-semibold">User Created Successfully</h3>
+            <p>Username: {response.username}</p>
+            <p>Password: {response.temporary_password}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🔹 Input Component
+function Input({ label, name, value, onChange, error }) {
+  return (
+    <div className="flex flex-col">
+      <label className="text-sm font-medium mb-1">{label}</label>
+      <input
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`border p-2 rounded ${error ? "border-red-500" : ""}`}
+      />
+      {error && <span className="text-red-500 text-xs">{error}</span>}
+    </div>
+  );
+}
+
+// 🔹 Select Component
+function Select({ label, name, value, onChange, options, error }) {
+  return (
+    <div className="flex flex-col">
+      <label className="text-sm font-medium mb-1">{label}</label>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`border p-2 rounded ${error ? "border-red-500" : ""}`}
+      >
+        <option value="">Select</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {error && <span className="text-red-500 text-xs">{error}</span>}
+    </div>
+  );
+}
