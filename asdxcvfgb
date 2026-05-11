@@ -1,0 +1,1016 @@
+"use client";
+
+import { useState } from "react";
+
+const S = {
+    page: { fontFamily: "'Segoe UI', sans-serif", background: "#f4f6f9", minHeight: "100vh", padding: "0" },
+    pageHeader: {
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "24px 32px 16px", borderBottom: "1px solid #e0e4ea",
+        background: "#fff", marginBottom: "28px",
+    },
+    pageTitle: { fontSize: "22px", fontWeight: 700, color: "#1a2332", margin: 0 },
+    pageSubtitle: { fontSize: "13px", color: "#6b7a8d", margin: "4px 0 0", fontWeight: 400 },
+    formCard: {
+        background: "#fff", borderRadius: "12px", padding: "28px 32px",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.07)", marginBottom: "24px",
+        border: "1px solid #e8ecf0",
+    },
+    formGrid: {
+        display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+        gap: "18px", marginBottom: "20px",
+    },
+    formGroup: { display: "flex", flexDirection: "column", gap: "6px" },
+    label: { fontSize: "12px", fontWeight: 600, color: "#4a5568", textTransform: "uppercase", letterSpacing: "0.5px" },
+    input: {
+        padding: "10px 14px", border: "1px solid #d1d9e0", borderRadius: "8px",
+        fontSize: "14px", color: "#1a2332", background: "#fff", outline: "none",
+        transition: "border-color 0.2s",
+    },
+    inputDisabled: {
+        padding: "10px 14px", border: "1px solid #e8ecf0", borderRadius: "8px",
+        fontSize: "14px", color: "#9aa5b4", background: "#f8f9fb", outline: "none",
+    },
+    select: {
+        padding: "10px 14px", border: "1px solid #d1d9e0", borderRadius: "8px",
+        fontSize: "14px", color: "#1a2332", background: "#fff", outline: "none",
+        cursor: "pointer",
+    },
+    primaryButton: {
+        padding: "11px 28px", background: "#2563eb", color: "#fff",
+        border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 600,
+        cursor: "pointer", transition: "background 0.2s",
+    },
+    disabledButton: {
+        padding: "11px 28px", background: "#b0bec5", color: "#fff",
+        border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 600,
+        cursor: "not-allowed",
+    },
+    dangerButton: {
+        padding: "11px 28px", background: "#dc2626", color: "#fff",
+        border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 600,
+        cursor: "pointer",
+    },
+    successButton: {
+        padding: "11px 28px", background: "#16a34a", color: "#fff",
+        border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 600,
+        cursor: "pointer",
+    },
+    // NEW: Re-run button style
+    rerunButton: {
+        padding: "8px 18px", background: "#fff", color: "#d97706",
+        border: "1.5px solid #d97706", borderRadius: "8px", fontSize: "13px", fontWeight: 600,
+        cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", gap: "6px",
+    },
+    fieldError: { fontSize: "12px", color: "#dc2626", marginTop: "2px" },
+    errorMsg: {
+        background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px",
+        padding: "12px 16px", color: "#dc2626", fontSize: "14px", marginBottom: "16px",
+    },
+    accountCard: {
+        border: "1.5px solid #e0e4ea", borderRadius: "14px",
+        marginBottom: "32px", overflow: "hidden", background: "#fff",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    },
+    accountHeader: {
+        background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
+        padding: "18px 28px", color: "#fff", display: "flex",
+        alignItems: "center", justifyContent: "space-between",
+    },
+    accountTitle: { fontSize: "16px", fontWeight: 700, margin: 0 },
+    accountMeta: { fontSize: "13px", opacity: 0.85, marginTop: "4px" },
+    accountBody: { padding: "24px 28px" },
+    stepCard: {
+        border: "1px solid #e8ecf0", borderRadius: "10px",
+        marginBottom: "16px", overflow: "hidden",
+    },
+    stepHeader: {
+        padding: "14px 20px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", cursor: "pointer", userSelect: "none",
+    },
+    stepHeaderActive: { background: "#f0f6ff", borderBottom: "1px solid #dbeafe" },
+    stepHeaderDone: { background: "#f0fdf4", borderBottom: "1px solid #bbf7d0" },
+    stepHeaderLocked: { background: "#f8f9fb" },
+    stepTitle: { fontSize: "14px", fontWeight: 600, color: "#1a2332", display: "flex", alignItems: "center", gap: "10px" },
+    stepBadge: {
+        width: "24px", height: "24px", borderRadius: "50%",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        fontSize: "12px", fontWeight: 700, flexShrink: 0,
+    },
+    stepBody: { padding: "20px", borderTop: "1px solid #f0f2f5", background: "#fff" },
+    stepGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px", marginBottom: "16px" },
+    responseCard: {
+        background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px",
+        padding: "14px 16px", marginTop: "14px",
+    },
+    responseTitle: { fontSize: "12px", fontWeight: 700, color: "#15803d", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" },
+    responseRow: { display: "flex", gap: "12px", fontSize: "13px", marginBottom: "6px", flexWrap: "wrap" },
+    responseKey: { color: "#6b7280", fontWeight: 500, minWidth: "120px" },
+    responseVal: { color: "#1a2332", fontWeight: 600 },
+    progressWrap: { display: "flex", gap: "6px", marginBottom: "24px", alignItems: "center", flexWrap: "wrap" },
+    progressStep: { fontSize: "11px", fontWeight: 600, padding: "4px 10px", borderRadius: "12px", whiteSpace: "nowrap" },
+    statusPill: (done) => ({
+        display: "inline-block", padding: "2px 10px", borderRadius: "12px",
+        fontSize: "12px", fontWeight: 600,
+        background: done ? "#dcfce7" : "#fef3c7",
+        color: done ? "#15803d" : "#92400e",
+    }),
+};
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+async function callApi(endpoint, body) {
+    const res = await fetch(`${BASE_URL}${endpoint}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.detail || `API error: ${res.status}`);
+    return data;
+}
+
+const STEPS = [
+    { key: "limit",            label: "Limit Creation",     num: 2 },
+    { key: "additional",       label: "Additional Details", num: 3 },
+    { key: "referral",         label: "Referral",           num: 4 },
+    { key: "acknowledgement",  label: "Acknowledgement",    num: 5 },
+    { key: "approval",         label: "Limit Approval",     num: 6 },
+    { key: "acceptance",       label: "User Acceptance",    num: 7 },
+    { key: "referralApproval", label: "Referral Approval",  num: 8 },
+    { key: "accClose",         label: "Account Close",      num: 9 },
+];
+
+// Done only when there is a SUCCESS response (not an error)
+function stepIsDone(workflow, key) {
+    const v = workflow[key];
+    if (!v) return false;
+    if (v.__isError) return false;
+    return true;
+}
+
+// All steps are unlocked — users can perform any step in any order
+function stepIsUnlocked(workflow, key) {
+    return true;
+}
+
+function RegionDropdown({ value, onChange, error }) {
+    const regions = [
+        { value: "X",  label: "X - Region X"  },
+        { value: "Y",  label: "Y - Region Y"  },
+        { value: "Y2", label: "Y2 - Region Y2" },
+        { value: "O",  label: "O - Other"      },
+        { value: "Z",  label: "Z - Region Z"  },
+        { value: "K",  label: "K - Region K"  },
+        { value: "J",  label: "J - Region J"  },
+        { value: "L",  label: "L - Region L"  },
+    ];
+    return (
+        <div style={S.formGroup}>
+            <label style={S.label}>Region / Server</label>
+            <select value={value} onChange={e => onChange(e.target.value)} style={S.select} required>
+                <option value="">Select Region</option>
+                {regions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+            {error && <div style={S.fieldError}>{error}</div>}
+        </div>
+    );
+}
+
+function ResponseCard({ data }) {
+    if (!data) return null;
+    if (data.__isError) {
+        return (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px", padding: "14px 16px", marginTop: "14px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#dc2626", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.5px" }}>✕ Error Response</div>
+                <div style={{ fontSize: "13px", color: "#dc2626", fontWeight: 600 }}>{data.__message || "An error occurred"}</div>
+                {data.__detail && Object.keys(data.__detail).length > 0 && (
+                    <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "4px" }}>
+                        {Object.entries(data.__detail)
+                            .filter(([k, v]) => !k.startsWith("__") && v !== null && v !== undefined && v !== "")
+                            .map(([k, v]) => (
+                                <div key={k} style={S.responseRow}>
+                                    <span style={S.responseKey}>{k.replace(/_/g, " ")}:</span>
+                                    <span style={{ ...S.responseVal, color: "#dc2626" }}>{String(v)}</span>
+                                </div>
+                            ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+    const entries = Object.entries(data).filter(([k, v]) => !k.startsWith("__") && v !== null && v !== undefined && v !== "");
+    if (!entries.length) return null;
+    return (
+        <div style={S.responseCard}>
+            <div style={S.responseTitle}>✓ Response</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "4px" }}>
+                {entries.map(([k, v]) => (
+                    <div key={k} style={S.responseRow}>
+                        <span style={S.responseKey}>{k.replace(/_/g, " ")}:</span>
+                        <span style={S.responseVal}>{String(v)}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── StepCard now accepts onRerun prop ──
+function StepCard({ stepKey, label, num, workflow, onRerun, children }) {
+    const done = stepIsDone(workflow, stepKey);
+    const unlocked = stepIsUnlocked(workflow, stepKey);
+    const [open, setOpen] = useState(true);
+
+    const headerStyle = done
+        ? { ...S.stepHeader, ...S.stepHeaderDone }
+        : unlocked
+            ? { ...S.stepHeader, ...S.stepHeaderActive }
+            : { ...S.stepHeader, ...S.stepHeaderLocked };
+
+    const badgeColor = done
+        ? { background: "#16a34a", color: "#fff" }
+        : unlocked
+            ? { background: "#2563eb", color: "#fff" }
+            : { background: "#d1d5db", color: "#6b7280" };
+
+    return (
+        <div style={S.stepCard}>
+            <div style={headerStyle} onClick={() => unlocked && setOpen(o => !o)}>
+                <div style={S.stepTitle}>
+                    <span style={{ ...S.stepBadge, ...badgeColor }}>
+                        {done ? "✓" : num}
+                    </span>
+                    <span style={{ color: done ? "#15803d" : unlocked ? "#1a2332" : "#9aa5b4" }}>
+                        {label}
+                    </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={S.statusPill(done)}>{done ? "Done" : unlocked ? "In Progress" : "Locked"}</span>
+                    {/* RE-RUN BUTTON: only shown when step is done */}
+                    {done && onRerun && (
+                        <button
+                            style={S.rerunButton}
+                            onClick={e => { e.stopPropagation(); onRerun(); setOpen(true); }}
+                            title="Re-run this step (will also reset all subsequent steps)"
+                        >
+                            ↺ Re-run
+                        </button>
+                    )}
+                    {unlocked && <span style={{ color: "#9aa5b4", fontSize: "12px" }}>{open ? "▲" : "▼"}</span>}
+                </div>
+            </div>
+            {unlocked && open && (
+                <div style={S.stepBody}>{children}</div>
+            )}
+        </div>
+    );
+}
+
+function ProgressBar({ workflow }) {
+    return (
+        <div style={S.progressWrap}>
+            <span style={{ fontSize: "12px", color: "#6b7280", marginRight: "4px", fontWeight: 600 }}>Progress:</span>
+            {STEPS.map(s => {
+                const done = stepIsDone(workflow, s.key);
+                const unlocked = stepIsUnlocked(workflow, s.key);
+                return (
+                    <span key={s.key} style={{
+                        ...S.progressStep,
+                        background: done ? "#dcfce7" : unlocked ? "#dbeafe" : "#f3f4f6",
+                        color: done ? "#15803d" : unlocked ? "#2563eb" : "#9ca3af",
+                    }}>
+                        {done ? "✓ " : ""}{s.label}
+                    </span>
+                );
+            })}
+        </div>
+    );
+}
+
+export default function CcodWorkflowView() {
+
+    const [region, setRegion]         = useState("");
+    const [cif, setCif]               = useState("");
+    const [prodCode, setProdCode]     = useState("");
+    const [segCode, setSegCode]       = useState("");
+    const [noAcc, setNoAcc]           = useState(1);
+    const [formErrors, setFormErrors] = useState({});
+    const [createLoading, setCreateLoading] = useState(false);
+    const [createError, setCreateError]     = useState("");
+
+    const [mode, setMode] = useState("create");
+
+    const [existingAccNum, setExistingAccNum]     = useState("");
+    const [existingRegion, setExistingRegion]     = useState("");
+    const [existingCustNum, setExistingCustNum]   = useState("");
+    const [existingErrors, setExistingErrors]     = useState({});
+    const [existingLoading, setExistingLoading]   = useState(false);
+
+    const [accounts, setAccounts] = useState([]);
+    const [stepLoading, setStepLoading] = useState({});
+    const [stepError, setStepError]     = useState({});
+
+    const updateFormData = (accNum, field, value) => {
+        setAccounts(prev => prev.map(a =>
+            a.accountNumber === accNum
+                ? { ...a, formData: { ...a.formData, [field]: value } }
+                : a
+        ));
+    };
+
+    const updateFormError = (accNum, field, msg) => {
+        setAccounts(prev => prev.map(a =>
+            a.accountNumber === accNum
+                ? { ...a, formErrors: { ...a.formErrors, [field]: msg } }
+                : a
+        ));
+    };
+
+    const updateWorkflow = (accNum, stepKey, data) => {
+        setAccounts(prev => prev.map(a =>
+            a.accountNumber === accNum
+                ? { ...a, workflow: { ...a.workflow, [stepKey]: data } }
+                : a
+        ));
+    };
+
+    // ── NEW: Reset a step AND all steps that come after it ──
+    // Because downstream steps depend on the current one, they must be cleared too.
+    const resetStep = (accNum, stepKey) => {
+        const order = STEPS.map(s => s.key);
+        const idx = order.indexOf(stepKey);
+        const keysToReset = order.slice(idx); // this step + all after
+        if (!window.confirm(
+            `Re-running "${STEPS[idx].label}" will also reset all subsequent steps for this account. Continue?`
+        )) return;
+        setAccounts(prev => prev.map(a => {
+            if (a.accountNumber !== accNum) return a;
+            const newWorkflow = { ...a.workflow };
+            keysToReset.forEach(k => { newWorkflow[k] = null; });
+            return { ...a, workflow: newWorkflow };
+        }));
+        // Clear any lingering errors for reset steps
+        setStepError(prev => {
+            const next = { ...prev };
+            keysToReset.forEach(k => { delete next[`${accNum}_${k}`]; });
+            return next;
+        });
+    };
+
+    const setLoading = (accNum, stepKey, val) => {
+        setStepLoading(prev => ({ ...prev, [`${accNum}_${stepKey}`]: val }));
+    };
+    const isLoading = (accNum, stepKey) => !!stepLoading[`${accNum}_${stepKey}`];
+
+    const setErr = (accNum, stepKey, msg) => {
+        setStepError(prev => ({ ...prev, [`${accNum}_${stepKey}`]: msg }));
+    };
+    const getErr = (accNum, stepKey) => stepError[`${accNum}_${stepKey}`] || "";
+
+    // ── STEP 1: CREATE CCOD ACCOUNT ──
+    const handleCreateAccount = async (e) => {
+        e.preventDefault();
+        const errors = {};
+        if (!region)                           errors.region   = "Please select a region";
+        if (!/^\d{11}$/.test(cif))             errors.cif      = "CIF must be exactly 11 digits";
+        if (!prodCode)                         errors.prodCode = "Product code is required";
+        if (!segCode)                          errors.segCode  = "Segment code is required";
+        if (!noAcc || noAcc < 1 || noAcc > 10) errors.noAcc   = "Must be between 1 and 10";
+        setFormErrors(errors);
+        if (Object.keys(errors).length) return;
+
+        try {
+            setCreateLoading(true);
+            setCreateError("");
+            const data = await callApi("/create_ccod", {
+                region, cif, p_code: prodCode, seg_code: segCode, no_acc: parseInt(noAcc, 10),
+            });
+            const parsed = data.map(item => {
+                let res = {};
+                try { res = JSON.parse(item.res_data); } catch { }
+                return {
+                    rrn: item.RRN || "",
+                    accountNumber: res.ACCOUNT_NUMBER || "",
+                    customerNumber: res.CUSTOMER_NUMBER || "",
+                    customerName: `${res.FIRST_NAME || ""} ${res.LAST_NAME || ""}`.trim(),
+                    region,
+                    rawParsed: res,
+                    workflow: {
+                        limit: null, additional: null, referral: null,
+                        acknowledgement: null, approval: null, acceptance: null,
+                        referralApproval: null, accClose: null,
+                    },
+                    formData: { limitAmt: "", expiryDate: "", schemeCode: "", activityCode: "", approvalAmt: "" },
+                    formErrors: {},
+                };
+            });
+            setAccounts(parsed);
+        } catch (err) {
+            setCreateError(err.message || "Failed to create CCOD account");
+        } finally {
+            setCreateLoading(false);
+        }
+    };
+
+    // ── ADD EXISTING ACCOUNT ──
+    const handleAddExistingAccount = async () => {
+        const errs = {};
+        if (!existingRegion)                  errs.existingRegion = "Please select a region";
+        if (!/^\d{11}$/.test(existingAccNum)) errs.existingAccNum = "Account number must be exactly 11 digits";
+        setExistingErrors(errs);
+        if (Object.keys(errs).length) return;
+        if (accounts.find(a => a.accountNumber === existingAccNum)) {
+            setExistingErrors({ existingAccNum: "This account is already in the workflow" });
+            return;
+        }
+        
+        try {
+            setExistingLoading(true);
+            // Fetch workflow status from backend
+            const workflowData = await callApi("/get_account_workflow", {
+                server: existingRegion,
+                ccod_acc: existingAccNum,
+            });
+            
+            // Build workflow object from response
+            // Response should contain completed steps like: { limit: {...}, additional: {...}, etc }
+            // If a step is completed, it will have data; if not, it will be null
+            const workflow = {
+                limit: workflowData?.limit || null,
+                additional: workflowData?.additional || null,
+                referral: workflowData?.referral || null,
+                acknowledgement: workflowData?.acknowledgement || null,
+                approval: workflowData?.approval || null,
+                acceptance: workflowData?.acceptance || null,
+                referralApproval: workflowData?.referralApproval || null,
+                accClose: workflowData?.accClose || null,
+            };
+            
+            setAccounts(prev => [...prev, {
+                rrn: workflowData?.rrn || "",
+                accountNumber: existingAccNum,
+                customerNumber: workflowData?.customerNumber || existingCustNum || "",
+                customerName: workflowData?.customerName || "",
+                region: existingRegion,
+                rawParsed: workflowData || {},
+                workflow: workflow,
+                formData: { limitAmt: "", expiryDate: "", schemeCode: "", activityCode: "", approvalAmt: "" },
+                formErrors: {},
+            }]);
+            setExistingAccNum(""); setExistingRegion(""); setExistingCustNum(""); setExistingErrors({});
+        } catch (err) {
+            setExistingErrors({ existingAccNum: `Error fetching workflow: ${err.message}` });
+        } finally {
+            setExistingLoading(false);
+        }
+    };
+
+    // ── STEP 2: LIMIT CREATION ──
+    const handleLimit = async (account) => {
+        const errs = {};
+        if (!account.formData.limitAmt || isNaN(account.formData.limitAmt) || Number(account.formData.limitAmt) <= 0)
+            errs.limitAmt = "Enter a valid amount";
+        if (!/^\d{8}$/.test(account.formData.expiryDate))
+            errs.expiryDate = "Date must be in DDMMYYYY format (8 digits)";
+        if (Object.keys(errs).length) {
+            Object.entries(errs).forEach(([f, m]) => updateFormError(account.accountNumber, f, m));
+            return;
+        }
+        try {
+            setLoading(account.accountNumber, "limit", true);
+            setErr(account.accountNumber, "limit", "");
+            const data = await callApi("/create_ccod_limit2", {
+                server: account.region, ccod_acc: account.accountNumber,
+                amt: account.formData.limitAmt, expirydate: account.formData.expiryDate,
+            });
+            setErr(account.accountNumber, "limit", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "limit", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "limit", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "limit", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "limit", false);
+        }
+    };
+
+    // ── STEP 3: ADDITIONAL DETAILS ──
+    const handleAdditional = async (account) => {
+        const errs = {};
+        if (!account.formData.schemeCode)   errs.schemeCode   = "Scheme code is required";
+        if (!account.formData.activityCode) errs.activityCode = "Activity code is required";
+        if (Object.keys(errs).length) {
+            Object.entries(errs).forEach(([f, m]) => updateFormError(account.accountNumber, f, m));
+            return;
+        }
+        try {
+            setLoading(account.accountNumber, "additional", true);
+            setErr(account.accountNumber, "additional", "");
+            const data = await callApi("/ccod_add_details3", {
+                server: account.region, ccod_acc: account.accountNumber,
+                schmcode: account.formData.schemeCode, actcode: account.formData.activityCode,
+            });
+            setErr(account.accountNumber, "additional", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "additional", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "additional", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "additional", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "additional", false);
+        }
+    };
+
+    // ── STEP 4: REFERRAL ──
+    const handleReferral = async (account) => {
+        try {
+            setLoading(account.accountNumber, "referral", true);
+            setErr(account.accountNumber, "referral", "");
+            const data = await callApi("/ccod_referral4", {
+                server: account.region, ccod_acc: account.accountNumber,
+            });
+            setErr(account.accountNumber, "referral", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "referral", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "referral", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "referral", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "referral", false);
+        }
+    };
+
+    // ── STEP 5: ACKNOWLEDGEMENT ──
+    const handleAcknowledgement = async (account) => {
+        try {
+            setLoading(account.accountNumber, "acknowledgement", true);
+            setErr(account.accountNumber, "acknowledgement", "");
+            const data = await callApi("/ccodacknowledment5", {
+                server: account.region, ccod_acc: account.accountNumber,
+            });
+            setErr(account.accountNumber, "acknowledgement", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "acknowledgement", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "acknowledgement", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "acknowledgement", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "acknowledgement", false);
+        }
+    };
+
+    // ── STEP 6: LIMIT APPROVAL ──
+    const handleApproval = async (account) => {
+        if (!account.formData.approvalAmt || isNaN(account.formData.approvalAmt) || Number(account.formData.approvalAmt) <= 0) {
+            updateFormError(account.accountNumber, "approvalAmt", "Enter a valid approval amount");
+            return;
+        }
+        updateFormError(account.accountNumber, "approvalAmt", "");
+        try {
+            setLoading(account.accountNumber, "approval", true);
+            setErr(account.accountNumber, "approval", "");
+            const data = await callApi("/ccod_limit_appr6", {
+                server: account.region, ccod_acc: account.accountNumber,
+                appr_amt: account.formData.approvalAmt,
+            });
+            setErr(account.accountNumber, "approval", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "approval", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "approval", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "approval", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "approval", false);
+        }
+    };
+
+    // ── STEP 7: USER ACCEPTANCE ──
+    const handleAcceptance = async (account) => {
+        try {
+            setLoading(account.accountNumber, "acceptance", true);
+            setErr(account.accountNumber, "acceptance", "");
+            const data = await callApi("/ccod_user_accept7", {
+                server: account.region, ccod_acc: account.accountNumber,
+            });
+            setErr(account.accountNumber, "acceptance", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "acceptance", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "acceptance", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "acceptance", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "acceptance", false);
+        }
+    };
+
+    // ── STEP 8: REFERRAL APPROVAL ──
+    const handleReferralApproval = async (account) => {
+        try {
+            setLoading(account.accountNumber, "referralApproval", true);
+            setErr(account.accountNumber, "referralApproval", "");
+            const data = await callApi("/ccod_referral_approve", {
+                server: account.region, ccod_acc: account.accountNumber,
+            });
+            setErr(account.accountNumber, "referralApproval", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "referralApproval", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "referralApproval", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "referralApproval", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "referralApproval", false);
+        }
+    };
+
+    // ── STEP 9: ACCOUNT CLOSE ──
+    const handleAccClose = async (account) => {
+        if (!account.accountNumber) {
+            setErr(account.accountNumber, "accClose", "Account number is missing");
+            return;
+        }
+        try {
+            setLoading(account.accountNumber, "accClose", true);
+            setErr(account.accountNumber, "accClose", "");
+            const data = await callApi("/acc_close", {
+                acc: account.accountNumber, server: account.region,
+            });
+            setErr(account.accountNumber, "accClose", ""); // clear any previous error
+            updateWorkflow(account.accountNumber, "accClose", data?.parsed || data);
+        } catch (err) {
+            setErr(account.accountNumber, "accClose", err.message);
+            // Store error in workflow so ResponseCard shows it; step stays retryable
+            updateWorkflow(account.accountNumber, "accClose", { __isError: true, __message: err.message });
+        } finally {
+            setLoading(account.accountNumber, "accClose", false);
+        }
+    };
+
+    // ── DOWNLOAD CSV ──
+    const downloadCsv = () => {
+        if (!accounts.length) return;
+        const headers = ["Region", "Account Number", "Customer Number", "Customer Name", "RRN",
+            "Limit Done", "Additional Done", "Referral Done", "Acknowledgement Done",
+            "Approval Done", "Acceptance Done", "Referral Approval Done", "Account Close Done"];
+        let csv = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
+        accounts.forEach(a => {
+            const row = [
+                a.region, a.accountNumber, a.customerNumber, a.customerName, a.rrn,
+                a.workflow.limit ? "Yes" : "No", a.workflow.additional ? "Yes" : "No",
+                a.workflow.referral ? "Yes" : "No", a.workflow.acknowledgement ? "Yes" : "No",
+                a.workflow.approval ? "Yes" : "No", a.workflow.acceptance ? "Yes" : "No",
+                a.workflow.referralApproval ? "Yes" : "No", a.workflow.accClose ? "Yes" : "No",
+            ].map(f => `"${f}"`).join(",");
+            csv += row + "\n";
+        });
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csv));
+        link.setAttribute("download", "ccod_workflow_data.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    return (
+        <div style={S.page}>
+
+            {/* PAGE HEADER */}
+            <div style={S.pageHeader}>
+                <div>
+                    <h1 style={S.pageTitle}>CCOD Workflow</h1>
+                    <p style={S.pageSubtitle}>Complete end-to-end CCOD account workflow automation</p>
+                </div>
+                {accounts.length > 0 && (
+                    <button style={S.successButton} onClick={downloadCsv}>↓ Download CSV</button>
+                )}
+            </div>
+
+            <div style={{ padding: "0 32px 40px" }}>
+
+                {/* STEP 1: CREATE / ADD ACCOUNT */}
+                <div style={S.formCard}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", paddingBottom: "12px", borderBottom: "2px solid #f0f2f5" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <span style={{ ...S.stepBadge, background: accounts.filter(a => !!a.accountNumber).length ? "#16a34a" : "#2563eb", color: "#fff", fontSize: "13px" }}>
+                                {accounts.filter(a => !!a.accountNumber).length ? "✓" : "1"}
+                            </span>
+                            <span style={{ fontSize: "15px", fontWeight: 600, color: "#1a2332" }}>
+                                {mode === "create" ? "Create CCOD Account" : "Add Existing Account"}
+                            </span>
+                            {accounts.filter(a => !!a.accountNumber).length > 0 && (
+                                <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 500 }}>
+                                    — {accounts.filter(a => !!a.accountNumber).length} account{accounts.filter(a => !!a.accountNumber).length > 1 ? "s" : ""} in workflow
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ display: "flex", background: "#f0f2f5", borderRadius: "8px", padding: "3px", gap: "2px" }}>
+                            <button type="button" onClick={() => { setMode("create"); setCreateError(""); setExistingErrors({}); }}
+                                style={{ padding: "7px 16px", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: "pointer", background: mode === "create" ? "#fff" : "transparent", color: mode === "create" ? "#2563eb" : "#6b7280", boxShadow: mode === "create" ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}>
+                                + Create New
+                            </button>
+                            <button type="button" onClick={() => { setMode("existing"); setCreateError(""); setExistingErrors({}); }}
+                                style={{ padding: "7px 16px", border: "none", borderRadius: "6px", fontSize: "13px", fontWeight: 600, cursor: "pointer", background: mode === "existing" ? "#fff" : "transparent", color: mode === "existing" ? "#2563eb" : "#6b7280", boxShadow: mode === "existing" ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}>
+                                ↗ Use Existing
+                            </button>
+                        </div>
+                    </div>
+
+                    {mode === "existing" ? (
+                        <div>
+                            <p style={{ fontSize: "13px", color: "#6b7280", marginTop: 0, marginBottom: "18px" }}>
+                                Enter your existing CCOD account number to skip account creation and start directly from <strong>Step 2 (Limit Creation)</strong>.
+                            </p>
+                            <div style={S.formGrid}>
+                                <RegionDropdown value={existingRegion} onChange={val => { setExistingRegion(val); setExistingErrors(p => ({ ...p, existingRegion: "" })); }} error={existingErrors.existingRegion} />
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>Account Number</label>
+                                    <input type="text" value={existingAccNum} onChange={e => { const v = e.target.value.replace(/\D/g, ""); if (v.length <= 11) { setExistingAccNum(v); setExistingErrors(p => ({ ...p, existingAccNum: v.length === 11 ? "" : "Must be exactly 11 digits" })); } }} style={S.input} placeholder="11-digit Account Number" maxLength={11} />
+                                    {existingErrors.existingAccNum && <div style={S.fieldError}>{existingErrors.existingAccNum}</div>}
+                                </div>
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>Customer Number <span style={{ fontWeight: 400, textTransform: "none", color: "#9aa5b4" }}>(optional)</span></label>
+                                    <input type="text" value={existingCustNum} onChange={e => setExistingCustNum(e.target.value)} style={S.input} placeholder="Customer number for reference" />
+                                </div>
+                            </div>
+                            <button type="button" style={existingLoading ? S.disabledButton : S.primaryButton} onClick={handleAddExistingAccount} disabled={existingLoading}>
+                                {existingLoading ? "Fetching Workflow..." : "Add to Workflow →"}
+                            </button>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleCreateAccount}>
+                            <div style={S.formGrid}>
+                                <RegionDropdown value={region} onChange={val => { setRegion(val); setFormErrors(p => ({ ...p, region: "" })); }} error={formErrors.region} />
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>CIF</label>
+                                    <input type="text" value={cif} onChange={e => { const v = e.target.value.replace(/\D/g, ""); if (v.length <= 11) { setCif(v); setFormErrors(p => ({ ...p, cif: v.length === 11 ? "" : "CIF must be exactly 11 digits" })); } }} style={S.input} placeholder="11-digit CIF number" maxLength={11} />
+                                    {formErrors.cif && <div style={S.fieldError}>{formErrors.cif}</div>}
+                                </div>
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>Product Code</label>
+                                    <select value={prodCode} onChange={e => { setProdCode(e.target.value); setFormErrors(p => ({ ...p, prodCode: "" })); }} style={S.select}>
+                                        <option value="">Select Product</option>
+                                        <option value="60501001">60501001 – K Region</option>
+                                        <option value="61201801">61201801 – Other Region</option>
+                                        <option value="66401031">66401031 – SCF</option>
+                                        <option value="60404003">60404003 – SCF</option>
+                                        <option value="60404004">60404004 – SCF</option>
+                                        <option value="65004002">65004002 – SCF</option>
+                                        <option value="61401801">61401801 – SCF</option>
+                                        <option value="65408082">65408082 – SCF</option>
+                                        <option value="65408081">65408081 – SCF</option>
+                                    </select>
+                                    {formErrors.prodCode && <div style={S.fieldError}>{formErrors.prodCode}</div>}
+                                </div>
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>Account Segment</label>
+                                    <select value={segCode} onChange={e => { setSegCode(e.target.value); setFormErrors(p => ({ ...p, segCode: "" })); }} style={S.select}>
+                                        <option value="">Select Segment</option>
+                                        <option value="0706">0706 – PER-NRI</option>
+                                    </select>
+                                    {formErrors.segCode && <div style={S.fieldError}>{formErrors.segCode}</div>}
+                                </div>
+                                <div style={S.formGroup}>
+                                    <label style={S.label}>No. of Accounts</label>
+                                    <input type="number" min={1} max={10} value={noAcc} onKeyDown={e => e.preventDefault()} onChange={e => { setNoAcc(e.target.value); setFormErrors(p => ({ ...p, noAcc: "" })); }} style={S.input} />
+                                    {formErrors.noAcc && <div style={S.fieldError}>{formErrors.noAcc}</div>}
+                                </div>
+                            </div>
+                            {createError && <div style={S.errorMsg}>{createError}</div>}
+                            <button type="submit" style={createLoading ? S.disabledButton : S.primaryButton} disabled={createLoading}>
+                                {createLoading ? "Creating Accounts..." : "Create CCOD Account"}
+                            </button>
+                        </form>
+                    )}
+
+                    {/* Generated Records */}
+                    {accounts.length > 0 && (
+                        <div style={{ marginTop: "20px" }}>
+                            <h3 style={{ fontSize: "14px", fontWeight: 700, color: "#1a2332", margin: "0 0 12px" }}>
+                                Generated Records ({accounts.length})
+                            </h3>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                {accounts.map((a, i) => {
+                                    const hasError = !!a.rawParsed?.ERROR_DESCRIPTION;
+                                    const hasAccount = !!a.accountNumber;
+                                    return (
+                                        <div key={i} style={{ border: `1.5px solid ${hasError ? "#fca5a5" : "#bbf7d0"}`, borderLeft: `4px solid ${hasError ? "#dc2626" : "#16a34a"}`, borderRadius: "8px", padding: "14px 18px", background: hasError ? "#fff5f5" : "#f0fdf4", display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start" }}>
+                                            <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: hasError ? "#dc2626" : "#16a34a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "12px", flexShrink: 0 }}>
+                                                {hasError ? "✕" : i + 1}
+                                            </div>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", flex: 1 }}>
+                                                <div><div style={{ fontSize: "11px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>RRN</div><div style={{ fontSize: "13px", fontWeight: 700, color: "#1a2332", marginTop: "2px" }}>{a.rrn || "—"}</div></div>
+                                                <div><div style={{ fontSize: "11px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Customer Number</div><div style={{ fontSize: "13px", fontWeight: 700, color: "#1a2332", marginTop: "2px" }}>{a.customerNumber || "—"}</div></div>
+                                                <div><div style={{ fontSize: "11px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Status</div><div style={{ marginTop: "2px" }}><span style={{ display: "inline-block", padding: "2px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: 600, background: hasError ? "#fee2e2" : "#dcfce7", color: hasError ? "#dc2626" : "#15803d" }}>{a.rawParsed?.STATUS || (hasError ? "FAILED" : "—")}</span></div></div>
+                                                {hasAccount && <div><div style={{ fontSize: "11px", color: "#6b7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Account Number</div><div style={{ fontSize: "13px", fontWeight: 700, color: "#2563eb", marginTop: "2px" }}>{a.accountNumber}</div></div>}
+                                                {hasError && <div style={{ width: "100%" }}><div style={{ fontSize: "11px", color: "#dc2626", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>Error</div><div style={{ fontSize: "13px", color: "#dc2626", fontWeight: 600, marginTop: "4px", padding: "8px 12px", background: "#fee2e2", borderRadius: "6px", border: "1px solid #fca5a5" }}>{a.rawParsed.ERROR_DESCRIPTION}</div></div>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* PER ACCOUNT WORKFLOW */}
+                {accounts.filter(a => !!a.accountNumber).map((account, idx) => (
+                    <div key={idx} style={S.accountCard}>
+                        <div style={{ ...S.accountHeader, background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)" }}>
+                            <div>
+                                <div style={S.accountTitle}>Account #{idx + 1}: {account.accountNumber}</div>
+                                <div style={S.accountMeta}>
+                                    Customer: {account.customerNumber || "—"}
+                                    {account.customerName && ` · ${account.customerName}`}
+                                    &nbsp;·&nbsp; Region: {account.region}
+                                    &nbsp;·&nbsp; RRN: {account.rrn}
+                                </div>
+                            </div>
+                            <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: "8px", padding: "8px 16px", fontSize: "13px", fontWeight: 600 }}>
+                                {STEPS.filter(s => stepIsDone(account.workflow, s.key)).length} / {STEPS.length} steps done
+                            </div>
+                        </div>
+
+                        <div style={S.accountBody}>
+                            <ProgressBar workflow={account.workflow} />
+
+                            {/* STEP 2: LIMIT CREATION */}
+                            <StepCard stepKey="limit" label="Limit Creation" num={2} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "limit")}>
+                                <div style={S.stepGrid}>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Limit Amount</label>
+                                        <input type="number" placeholder="e.g. 100000" value={account.formData.limitAmt}
+                                            onChange={e => { updateFormData(account.accountNumber, "limitAmt", e.target.value); updateFormError(account.accountNumber, "limitAmt", ""); }}
+                                            style={stepIsDone(account.workflow, "limit") ? S.inputDisabled : S.input} disabled={stepIsDone(account.workflow, "limit")} />
+                                        {account.formErrors?.limitAmt && <div style={S.fieldError}>{account.formErrors.limitAmt}</div>}
+                                    </div>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Expiry Date (DDMMYYYY)</label>
+                                        <input type="text" placeholder="31122026" maxLength={8} value={account.formData.expiryDate}
+                                            onChange={e => { const v = e.target.value.replace(/\D/g, ""); if (v.length <= 8) { updateFormData(account.accountNumber, "expiryDate", v); updateFormError(account.accountNumber, "expiryDate", ""); } }}
+                                            style={stepIsDone(account.workflow, "limit") ? S.inputDisabled : S.input} disabled={stepIsDone(account.workflow, "limit")} />
+                                        {account.formErrors?.expiryDate && <div style={S.fieldError}>{account.formErrors.expiryDate}</div>}
+                                    </div>
+                                </div>
+                                {getErr(account.accountNumber, "limit") && <div style={S.errorMsg}>{getErr(account.accountNumber, "limit")}</div>}
+                                {!stepIsDone(account.workflow, "limit") && (
+                                    <button style={isLoading(account.accountNumber, "limit") ? S.disabledButton : S.primaryButton} onClick={() => handleLimit(account)} disabled={isLoading(account.accountNumber, "limit")}>
+                                        {isLoading(account.accountNumber, "limit") ? "Processing..." : "Create Limit"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.limit} />
+                            </StepCard>
+
+                            {/* STEP 3: ADDITIONAL DETAILS */}
+                            <StepCard stepKey="additional" label="Additional Details" num={3} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "additional")}>
+                                <div style={S.stepGrid}>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Scheme Code</label>
+                                        <select value={account.formData.schemeCode}
+                                            onChange={e => { updateFormData(account.accountNumber, "schemeCode", e.target.value); updateFormError(account.accountNumber, "schemeCode", ""); }}
+                                            style={stepIsDone(account.workflow, "additional") ? { ...S.inputDisabled, cursor: "not-allowed" } : S.select} disabled={stepIsDone(account.workflow, "additional")}>
+                                            <option value="">Select Scheme Code</option>
+                                            <option value="00001">00001</option>
+                                        </select>
+                                        {account.formErrors?.schemeCode && <div style={S.fieldError}>{account.formErrors.schemeCode}</div>}
+                                    </div>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Activity Code</label>
+                                        <select value={account.formData.activityCode}
+                                            onChange={e => { updateFormData(account.accountNumber, "activityCode", e.target.value); updateFormError(account.accountNumber, "activityCode", ""); }}
+                                            style={stepIsDone(account.workflow, "additional") ? { ...S.inputDisabled, cursor: "not-allowed" } : S.select} disabled={stepIsDone(account.workflow, "additional")}>
+                                            <option value="">Select Activity Code</option>
+                                            <option value="00001">00001</option>
+                                        </select>
+                                        {account.formErrors?.activityCode && <div style={S.fieldError}>{account.formErrors.activityCode}</div>}
+                                    </div>
+                                </div>
+                                {getErr(account.accountNumber, "additional") && <div style={S.errorMsg}>{getErr(account.accountNumber, "additional")}</div>}
+                                {!stepIsDone(account.workflow, "additional") && (
+                                    <button style={isLoading(account.accountNumber, "additional") ? S.disabledButton : S.primaryButton} onClick={() => handleAdditional(account)} disabled={isLoading(account.accountNumber, "additional")}>
+                                        {isLoading(account.accountNumber, "additional") ? "Processing..." : "Submit Additional Details"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.additional} />
+                            </StepCard>
+
+                            {/* STEP 4: REFERRAL */}
+                            <StepCard stepKey="referral" label="Referral" num={4} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "referral")}>
+                                <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px", marginTop: 0 }}>
+                                    Submit referral for account <strong>{account.accountNumber}</strong>. No additional input required.
+                                </p>
+                                {getErr(account.accountNumber, "referral") && <div style={S.errorMsg}>{getErr(account.accountNumber, "referral")}</div>}
+                                {!stepIsDone(account.workflow, "referral") && (
+                                    <button style={isLoading(account.accountNumber, "referral") ? S.disabledButton : S.primaryButton} onClick={() => handleReferral(account)} disabled={isLoading(account.accountNumber, "referral")}>
+                                        {isLoading(account.accountNumber, "referral") ? "Processing..." : "Submit Referral"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.referral} />
+                            </StepCard>
+
+                            {/* STEP 5: ACKNOWLEDGEMENT */}
+                            <StepCard stepKey="acknowledgement" label="Acknowledgement" num={5} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "acknowledgement")}>
+                                <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px", marginTop: 0 }}>
+                                    Submit acknowledgement for account <strong>{account.accountNumber}</strong>. No additional input required.
+                                </p>
+                                {getErr(account.accountNumber, "acknowledgement") && <div style={S.errorMsg}>{getErr(account.accountNumber, "acknowledgement")}</div>}
+                                {!stepIsDone(account.workflow, "acknowledgement") && (
+                                    <button style={isLoading(account.accountNumber, "acknowledgement") ? S.disabledButton : S.primaryButton} onClick={() => handleAcknowledgement(account)} disabled={isLoading(account.accountNumber, "acknowledgement")}>
+                                        {isLoading(account.accountNumber, "acknowledgement") ? "Processing..." : "Submit Acknowledgement"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.acknowledgement} />
+                            </StepCard>
+
+                            {/* STEP 6: LIMIT APPROVAL */}
+                            <StepCard stepKey="approval" label="Limit Approval" num={6} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "approval")}>
+                                <div style={S.stepGrid}>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Approval Amount</label>
+                                        <input type="number" placeholder="e.g. 100000" value={account.formData.approvalAmt}
+                                            onChange={e => { updateFormData(account.accountNumber, "approvalAmt", e.target.value); updateFormError(account.accountNumber, "approvalAmt", ""); }}
+                                            style={stepIsDone(account.workflow, "approval") ? S.inputDisabled : S.input} disabled={stepIsDone(account.workflow, "approval")} />
+                                        {account.formErrors?.approvalAmt && <div style={S.fieldError}>{account.formErrors.approvalAmt}</div>}
+                                    </div>
+                                </div>
+                                {getErr(account.accountNumber, "approval") && <div style={S.errorMsg}>{getErr(account.accountNumber, "approval")}</div>}
+                                {!stepIsDone(account.workflow, "approval") && (
+                                    <button style={isLoading(account.accountNumber, "approval") ? S.disabledButton : S.primaryButton} onClick={() => handleApproval(account)} disabled={isLoading(account.accountNumber, "approval")}>
+                                        {isLoading(account.accountNumber, "approval") ? "Processing..." : "Approve Limit"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.approval} />
+                            </StepCard>
+
+                            {/* STEP 7: USER ACCEPTANCE */}
+                            <StepCard stepKey="acceptance" label="User Acceptance" num={7} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "acceptance")}>
+                                <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px", marginTop: 0 }}>
+                                    Confirm user acceptance for account <strong>{account.accountNumber}</strong>. No additional input required.
+                                </p>
+                                {getErr(account.accountNumber, "acceptance") && <div style={S.errorMsg}>{getErr(account.accountNumber, "acceptance")}</div>}
+                                {!stepIsDone(account.workflow, "acceptance") && (
+                                    <button style={isLoading(account.accountNumber, "acceptance") ? S.disabledButton : S.primaryButton} onClick={() => handleAcceptance(account)} disabled={isLoading(account.accountNumber, "acceptance")}>
+                                        {isLoading(account.accountNumber, "acceptance") ? "Processing..." : "User Acceptance"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.acceptance} />
+                            </StepCard>
+
+                            {/* STEP 8: REFERRAL APPROVAL */}
+                            <StepCard stepKey="referralApproval" label="Referral Approval" num={8} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "referralApproval")}>
+                                <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "16px", marginTop: 0 }}>
+                                    Final referral approval for account <strong>{account.accountNumber}</strong>. No additional input required.
+                                </p>
+                                {getErr(account.accountNumber, "referralApproval") && <div style={S.errorMsg}>{getErr(account.accountNumber, "referralApproval")}</div>}
+                                {!stepIsDone(account.workflow, "referralApproval") && (
+                                    <button style={isLoading(account.accountNumber, "referralApproval") ? S.disabledButton : S.primaryButton} onClick={() => handleReferralApproval(account)} disabled={isLoading(account.accountNumber, "referralApproval")}>
+                                        {isLoading(account.accountNumber, "referralApproval") ? "Processing..." : "Referral Approval"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.referralApproval} />
+                            </StepCard>
+
+                            {/* STEP 9: ACCOUNT CLOSE */}
+                            <StepCard stepKey="accClose" label="Account Close" num={9} workflow={account.workflow}
+                                onRerun={() => resetStep(account.accountNumber, "accClose")}>
+                                <div style={S.stepGrid}>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Account Number</label>
+                                        <input type="text" value={account.accountNumber} style={S.inputDisabled} disabled readOnly />
+                                        <span style={{ fontSize: "11px", color: "#9aa5b4", marginTop: "2px" }}>Auto-filled from created account</span>
+                                    </div>
+                                    <div style={S.formGroup}>
+                                        <label style={S.label}>Region / Server</label>
+                                        <input type="text" value={account.region} style={S.inputDisabled} disabled readOnly />
+                                    </div>
+                                </div>
+                                {!stepIsDone(account.workflow, "accClose") && (
+                                    <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: "8px", padding: "12px 16px", marginBottom: "16px", fontSize: "13px", color: "#92400e" }}>
+                                        ⚠️ <strong>Warning:</strong> This action will close the account permanently. Ensure all previous steps are completed before proceeding.
+                                    </div>
+                                )}
+                                {getErr(account.accountNumber, "accClose") && <div style={S.errorMsg}>{getErr(account.accountNumber, "accClose")}</div>}
+                                {!stepIsDone(account.workflow, "accClose") && (
+                                    <button style={isLoading(account.accountNumber, "accClose") ? S.disabledButton : S.dangerButton}
+                                        onClick={() => { if (window.confirm(`Close account ${account.accountNumber}? This cannot be undone.`)) { handleAccClose(account); } }}
+                                        disabled={isLoading(account.accountNumber, "accClose")}>
+                                        {isLoading(account.accountNumber, "accClose") ? "Closing Account..." : "Close Account"}
+                                    </button>
+                                )}
+                                <ResponseCard data={account.workflow.accClose} />
+                            </StepCard>
+
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
