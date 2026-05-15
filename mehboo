@@ -14,9 +14,9 @@ export default function CheckDigitEnquiryView() {
 
     const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-    // ==================================================
-    // Validation Function
-    // ==================================================
+    // =====================================================
+    // Validation
+    // =====================================================
     const validateForm = () => {
         const errors = {};
 
@@ -28,11 +28,12 @@ export default function CheckDigitEnquiryView() {
         // Account Validation
         if (!acc) {
             errors.acc = "Account number is required";
-        } else if (!/^\d+$/.test(acc)) {
-            errors.acc = "Account number must contain only digits";
-        } else if (acc.length < 10 || acc.length > 16) {
-            errors.acc =
-                "Account number must be between 10 and 16 digits";
+        } 
+        else if (!/^\d+$/.test(acc)) {
+            errors.acc = "Only numeric digits allowed";
+        } 
+        else if (acc.length !== 10) {
+            errors.acc = "Account number must be exactly 10 digits";
         }
 
         setFormErrors(errors);
@@ -40,9 +41,9 @@ export default function CheckDigitEnquiryView() {
         return Object.keys(errors).length === 0;
     };
 
-    // ==================================================
+    // =====================================================
     // Submit Handler
-    // ==================================================
+    // =====================================================
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -70,7 +71,7 @@ export default function CheckDigitEnquiryView() {
             });
 
             // ============================================
-            // API Error Handling
+            // Error Handling
             // ============================================
             if (!res.ok) {
                 let errorMessage = `API Error ${res.status}`;
@@ -90,35 +91,42 @@ export default function CheckDigitEnquiryView() {
             }
 
             // ============================================
-            // Safe JSON Parsing
+            // Parse Response
             // ============================================
-            let data;
+            const data = await res.json();
 
-            try {
-                data = await res.json();
-            } catch {
-                throw new Error("Invalid JSON response from server");
-            }
+            console.log("API Response:", data);
 
             setResponse(data);
 
         } catch (err) {
-            console.error("Check Digit API Error:", err);
+            console.error("API Error:", err);
 
             setError(
                 err.message ||
-                    "Something went wrong while processing request"
+                "Something went wrong while checking digit"
             );
         } finally {
             setLoading(false);
         }
     };
 
+    // =====================================================
+    // Extract Full Account Number
+    // =====================================================
+    const fullAccountNumber =
+        response?.parsed?.account_no || "N/A";
+
+    const checkDigit =
+        fullAccountNumber !== "N/A"
+            ? fullAccountNumber.split("-")[1]
+            : "N/A";
+
     return (
         <div>
 
             {/* ========================================= */}
-            {/* Header Section */}
+            {/* Header */}
             {/* ========================================= */}
             <div style={styles.pageHeader}>
                 <div>
@@ -127,20 +135,21 @@ export default function CheckDigitEnquiryView() {
                     </h1>
 
                     <p style={styles.pageSubtitle}>
-                        Validate Account Check Digit Information
+                        Validate and Generate Check Digit
                     </p>
                 </div>
             </div>
 
             {/* ========================================= */}
-            {/* Form Card */}
+            {/* Form Section */}
             {/* ========================================= */}
             <div style={styles.formCard}>
                 <form onSubmit={handleSubmit}>
+
                     <div style={styles.formGrid}>
 
                         {/* ================================= */}
-                        {/* Server Dropdown */}
+                        {/* Server */}
                         {/* ================================= */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>
@@ -164,6 +173,10 @@ export default function CheckDigitEnquiryView() {
                                     Select Server
                                 </option>
 
+                                <option value="K">
+                                    K
+                                </option>
+
                                 <option value="UAT">
                                     UAT
                                 </option>
@@ -185,27 +198,27 @@ export default function CheckDigitEnquiryView() {
                         {/* ================================= */}
                         <div style={styles.formGroup}>
                             <label style={styles.label}>
-                                Account Number
+                                10 Digit Account Number
                             </label>
 
                             <input
                                 type="text"
                                 value={acc}
-                                placeholder="Enter Account Number"
+                                placeholder="Enter 10 Digit Account Number"
                                 style={styles.input}
+                                maxLength={10}
                                 required
-                                maxLength={16}
                                 onChange={(e) => {
+
                                     const value = e.target.value;
 
                                     // Numeric validation
-                                    if (
-                                        !/^\d*$/.test(value)
-                                    ) {
+                                    if (!/^\d*$/.test(value)) {
+
                                         setFormErrors({
                                             ...formErrors,
                                             acc:
-                                                "Only numeric digits are allowed",
+                                                "Only numeric digits allowed",
                                         });
 
                                         return;
@@ -213,17 +226,17 @@ export default function CheckDigitEnquiryView() {
 
                                     setAcc(value);
 
-                                    // Length Validation
-                                    if (
-                                        value.length > 0 &&
-                                        value.length < 10
-                                    ) {
+                                    // Real Time Validation
+                                    if (value.length > 0 && value.length < 10) {
+
                                         setFormErrors({
                                             ...formErrors,
                                             acc:
-                                                "Minimum 10 digits required",
+                                                "Account number must be exactly 10 digits",
                                         });
+
                                     } else {
+
                                         setFormErrors({
                                             ...formErrors,
                                             acc: "",
@@ -249,14 +262,14 @@ export default function CheckDigitEnquiryView() {
                         disabled={loading}
                     >
                         {loading
-                            ? "Processing..."
-                            : "Check Digit"}
+                            ? "Checking..."
+                            : "Generate Check Digit"}
                     </button>
                 </form>
             </div>
 
             {/* ========================================= */}
-            {/* Error Card */}
+            {/* Error Section */}
             {/* ========================================= */}
             {error && (
                 <div style={styles.resultsCard}>
@@ -271,48 +284,55 @@ export default function CheckDigitEnquiryView() {
             {/* ========================================= */}
             {response && (
                 <div style={styles.resultsCard}>
+
                     <h3 style={{ marginBottom: "20px" }}>
-                        Check Digit Response
+                        Check Digit Result
                     </h3>
 
                     <div style={styles.resultsList}>
+
                         <div style={styles.resultItem}>
+
                             <div style={styles.resultContent}>
 
-                                <p>
-                                    <strong>Server:</strong>{" "}
-                                    {response.server || "N/A"}
-                                </p>
-
+                                {/* Status */}
                                 <p>
                                     <strong>Status:</strong>{" "}
-                                    {response?.parsed?.STATUS || "N/A"}
+                                    {response?.parsed?.status || "N/A"}
                                 </p>
 
+                                {/* Original Account */}
                                 <p>
-                                    <strong>Account Number:</strong>{" "}
+                                    <strong>Entered Account Number:</strong>{" "}
                                     {acc}
                                 </p>
 
+                                {/* Check Digit */}
                                 <p>
-                                    <strong>Check Digit:</strong>{" "}
-                                    {response?.parsed?.CHECK_DIGIT || "N/A"}
+                                    <strong>Generated Check Digit:</strong>{" "}
+                                    {checkDigit}
                                 </p>
 
-                                <p>
-                                    <strong>Message:</strong>{" "}
-                                    {response?.parsed?.MESSAGE || "N/A"}
-                                </p>
-
-                                <p>
-                                    <strong>Response Code:</strong>{" "}
-                                    {response?.parsed?.RESPONSE_CODE || "N/A"}
+                                {/* Full Account Number */}
+                                <p
+                                    style={{
+                                        fontSize: "18px",
+                                        fontWeight: "bold",
+                                        color: "#0f766e",
+                                        marginTop: "15px",
+                                    }}
+                                >
+                                    <strong>
+                                        Full Account Number:
+                                    </strong>{" "}
+                                    {fullAccountNumber}
                                 </p>
 
                                 {/* ================================= */}
-                                {/* Raw Response */}
+                                {/* Raw API Response */}
                                 {/* ================================= */}
                                 <div style={{ marginTop: "20px" }}>
+
                                     <p>
                                         <strong>
                                             Raw API Response
