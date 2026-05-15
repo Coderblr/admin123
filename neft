@@ -46,7 +46,7 @@ export default function NEFTView() {
         }
         else if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
             errors.amount =
-                "Enter valid amount (up to 2 decimal places)";
+                "Enter valid amount";
         }
         else if (Number(amount) <= 0) {
             errors.amount =
@@ -92,9 +92,13 @@ export default function NEFTView() {
             errors.instrument_type =
                 "Instrument type is required";
         }
-        else if (!/^[A-Za-z]{2}$/.test(instrument_type)) {
+        else if (!/^\d+$/.test(instrument_type)) {
             errors.instrument_type =
-                "Instrument type must be exactly 2 characters";
+                "Instrument type must be numeric";
+        }
+        else if (instrument_type.length > 2) {
+            errors.instrument_type =
+                "Instrument type max length is 2";
         }
 
         // =============================================
@@ -484,24 +488,22 @@ export default function NEFTView() {
                             <input
                                 type="text"
                                 value={instrument_type}
-                                placeholder="Eg: CQ"
+                                placeholder="Enter Instrument Type"
                                 maxLength={2}
                                 style={styles.input}
                                 required
                                 onChange={(e) => {
 
                                     const value =
-                                        e.target.value
-                                            .toUpperCase();
+                                        e.target.value;
 
-                                    if (
-                                        !/^[A-Z]*$/.test(value)
-                                    ) {
+                                    // Numeric Validation
+                                    if (!/^\d*$/.test(value)) {
 
                                         setFormErrors({
                                             ...formErrors,
                                             instrument_type:
-                                                "Only alphabets allowed",
+                                                "Only numeric digits allowed",
                                         });
 
                                         return;
@@ -687,7 +689,7 @@ export default function NEFTView() {
             {/* ===================================== */}
             {/* Response Section */}
             {/* ===================================== */}
-            {response && (
+            {response?.parsed && (
                 <div style={styles.resultsCard}>
 
                     <h3 style={{ marginBottom: "20px" }}>
@@ -700,70 +702,27 @@ export default function NEFTView() {
 
                             <div style={styles.resultContent}>
 
-                                <p>
-                                    <strong>Status:</strong>{" "}
-                                    {response?.parsed?.status || "N/A"}
-                                </p>
+                                {/* ================================= */}
+                                {/* Dynamically Print Parsed Fields */}
+                                {/* ================================= */}
+                                {Object.entries(response.parsed).map(
+                                    ([key, value]) => (
 
-                                <p>
-                                    <strong>Transaction ID:</strong>{" "}
-                                    {response?.parsed?.transaction_id || "N/A"}
-                                </p>
+                                        <p key={key}>
 
-                                <p>
-                                    <strong>Amount:</strong>{" "}
-                                    ₹ {amount}
-                                </p>
+                                            <strong>
+                                                {key
+                                                    .replaceAll("_", " ")
+                                                    .toUpperCase()}
+                                                :
+                                            </strong>{" "}
 
-                                <p>
-                                    <strong>Debit Account:</strong>{" "}
-                                    {account_number}
-                                </p>
+                                            {String(value)}
 
-                                <p>
-                                    <strong>Beneficiary Account:</strong>{" "}
-                                    {beneficiary_account}
-                                </p>
+                                        </p>
+                                    )
+                                )}
 
-                                <p>
-                                    <strong>IFSC:</strong>{" "}
-                                    {ifsc}
-                                </p>
-
-                                <p>
-                                    <strong>Message:</strong>{" "}
-                                    {response?.parsed?.message || "N/A"}
-                                </p>
-
-                                {/* ========================== */}
-                                {/* Raw API Response */}
-                                {/* ========================== */}
-                                <div style={{ marginTop: "20px" }}>
-
-                                    <p>
-                                        <strong>
-                                            Raw API Response
-                                        </strong>
-                                    </p>
-
-                                    <pre
-                                        style={{
-                                            background: "#f4f4f4",
-                                            padding: "12px",
-                                            borderRadius: "8px",
-                                            overflowX: "auto",
-                                            fontSize: "12px",
-                                            marginTop: "10px",
-                                            maxHeight: "400px",
-                                        }}
-                                    >
-                                        {JSON.stringify(
-                                            response,
-                                            null,
-                                            2
-                                        )}
-                                    </pre>
-                                </div>
                             </div>
                         </div>
                     </div>
