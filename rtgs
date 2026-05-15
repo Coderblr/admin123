@@ -1,0 +1,725 @@
+"use client";
+
+import { useState } from "react";
+import { styles } from "../../styles/AppStyles";
+
+export default function RTGSView() {
+
+    // =====================================================
+    // State Management
+    // =====================================================
+    const [server, setServer] = useState("");
+    const [amount, setAmount] = useState("");
+    const [account_number, setAccountNumber] = useState("");
+    const [cheque_number, setChequeNumber] = useState("");
+    const [instrument_type, setInstrumentType] = useState("");
+    const [instrument_date, setInstrumentDate] = useState("");
+    const [beneficiary_account, setBeneficiaryAccount] = useState("");
+    const [ifsc, setIfsc] = useState("");
+
+    const [response, setResponse] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
+
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+    // =====================================================
+    // Validation Function
+    // =====================================================
+    const validateForm = () => {
+
+        const errors = {};
+
+        // =============================================
+        // Server Validation
+        // =============================================
+        if (!server) {
+            errors.server = "Please select server";
+        }
+
+        // =============================================
+        // Amount Validation
+        // =============================================
+        if (!amount) {
+            errors.amount = "Amount is required";
+        }
+        else if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
+            errors.amount =
+                "Enter valid amount";
+        }
+        else if (Number(amount) <= 0) {
+            errors.amount =
+                "Amount must be greater than 0";
+        }
+
+        // =============================================
+        // Account Number Validation
+        // =============================================
+        if (!account_number) {
+            errors.account_number =
+                "Account number is required";
+        }
+        else if (!/^\d+$/.test(account_number)) {
+            errors.account_number =
+                "Only numeric digits allowed";
+        }
+        else if (account_number.length !== 11) {
+            errors.account_number =
+                "Account number must be exactly 11 digits";
+        }
+
+        // =============================================
+        // Beneficiary Account Validation
+        // =============================================
+        if (!beneficiary_account) {
+            errors.beneficiary_account =
+                "Beneficiary account is required";
+        }
+        else if (!/^\d+$/.test(beneficiary_account)) {
+            errors.beneficiary_account =
+                "Only numeric digits allowed";
+        }
+        else if (beneficiary_account.length !== 11) {
+            errors.beneficiary_account =
+                "Beneficiary account must be exactly 11 digits";
+        }
+
+        // =============================================
+        // IFSC Validation
+        // =============================================
+        if (!ifsc) {
+            errors.ifsc = "IFSC code is required";
+        }
+        else if (
+            !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)
+        ) {
+            errors.ifsc =
+                "Enter valid IFSC code";
+        }
+
+        // =============================================
+        // Cheque Number Validation
+        // =============================================
+        if (!cheque_number) {
+            errors.cheque_number =
+                "Cheque number is required";
+        }
+        else if (!/^\d+$/.test(cheque_number)) {
+            errors.cheque_number =
+                "Cheque number must be numeric";
+        }
+        else if (cheque_number.length !== 6) {
+            errors.cheque_number =
+                "Cheque number must be exactly 6 digits";
+        }
+
+        // =============================================
+        // Instrument Type Validation
+        // =============================================
+        if (!instrument_type) {
+            errors.instrument_type =
+                "Instrument type is required";
+        }
+        else if (!/^\d+$/.test(instrument_type)) {
+            errors.instrument_type =
+                "Only numeric digits allowed";
+        }
+        else if (instrument_type.length > 2) {
+            errors.instrument_type =
+                "Maximum 2 digits allowed";
+        }
+
+        // =============================================
+        // Instrument Date Validation
+        // =============================================
+        if (!instrument_date) {
+            errors.instrument_date =
+                "Instrument date is required";
+        }
+
+        setFormErrors(errors);
+
+        return Object.keys(errors).length === 0;
+    };
+
+    // =====================================================
+    // Submit Handler
+    // =====================================================
+    const handleSubmit = async (event) => {
+
+        event.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setResponse(null);
+
+        try {
+
+            // =========================================
+            // Date Conversion DDMMYYYY
+            // =========================================
+            const [year, month, day] =
+                instrument_date.split("-");
+
+            const formattedDate =
+                `${day}${month}${year}`;
+
+            // =========================================
+            // Payload Mapping
+            // =========================================
+            const payload = {
+                server,
+                amount,
+                account_number,
+                cheque_number,
+                instrument_type,
+                instrument_date: formattedDate,
+                beneficiary_account,
+                ifsc: ifsc.toUpperCase(),
+            };
+
+            console.log("RTGS Payload:", payload);
+
+            // =========================================
+            // API Call
+            // =========================================
+            const res = await fetch(
+                `${BASE_URL}/create_RTGS`,
+                {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            // =========================================
+            // Error Handling
+            // =========================================
+            if (!res.ok) {
+
+                let errorMessage =
+                    `API Error ${res.status}`;
+
+                try {
+
+                    const errData =
+                        await res.json();
+
+                    errorMessage =
+                        errData.detail ||
+                        errData.message ||
+                        errorMessage;
+
+                } catch {
+
+                    errorMessage =
+                        `${res.status} ${res.statusText}`;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            // =========================================
+            // Parse Response
+            // =========================================
+            const data = await res.json();
+
+            console.log("RTGS Response:", data);
+
+            setResponse(data);
+
+        } catch (err) {
+
+            console.error("RTGS API Error:", err);
+
+            setError(
+                err.message ||
+                "Something went wrong while processing RTGS"
+            );
+
+        } finally {
+
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div>
+
+            {/* ===================================== */}
+            {/* Header */}
+            {/* ===================================== */}
+            <div style={styles.pageHeader}>
+                <div>
+                    <h1 style={styles.pageTitle}>
+                        Create RTGS
+                    </h1>
+
+                    <p style={styles.pageSubtitle}>
+                        Generate RTGS Transaction
+                    </p>
+                </div>
+            </div>
+
+            {/* ===================================== */}
+            {/* Form Section */}
+            {/* ===================================== */}
+            <div style={styles.formCard}>
+
+                <form onSubmit={handleSubmit}>
+
+                    <div style={styles.formGrid}>
+
+                        {/* ========================= */}
+                        {/* Server */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Server
+                            </label>
+
+                            <select
+                                value={server}
+                                onChange={(e) => {
+                                    setServer(e.target.value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        server: "",
+                                    });
+                                }}
+                                style={styles.select}
+                                required
+                            >
+                                <option value="">
+                                    Select Server
+                                </option>
+
+                                <option value="K">
+                                    K
+                                </option>
+
+                                <option value="UAT">
+                                    UAT
+                                </option>
+
+                                <option value="PROD">
+                                    PROD
+                                </option>
+                            </select>
+
+                            {formErrors.server && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.server}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* Amount */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Amount
+                            </label>
+
+                            <input
+                                type="text"
+                                value={amount}
+                                placeholder="Enter Amount"
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    const value =
+                                        e.target.value;
+
+                                    if (
+                                        !/^\d*\.?\d{0,2}$/.test(value)
+                                    ) {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            amount:
+                                                "Invalid amount format",
+                                        });
+
+                                        return;
+                                    }
+
+                                    setAmount(value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        amount: "",
+                                    });
+                                }}
+                            />
+
+                            {formErrors.amount && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.amount}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* Account Number */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Account Number
+                            </label>
+
+                            <input
+                                type="text"
+                                value={account_number}
+                                placeholder="Enter 11 Digit Account Number"
+                                maxLength={11}
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    const value =
+                                        e.target.value;
+
+                                    if (!/^\d*$/.test(value)) {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            account_number:
+                                                "Only numeric digits allowed",
+                                        });
+
+                                        return;
+                                    }
+
+                                    setAccountNumber(value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        account_number: "",
+                                    });
+                                }}
+                            />
+
+                            {formErrors.account_number && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.account_number}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* Beneficiary Account */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Beneficiary Account
+                            </label>
+
+                            <input
+                                type="text"
+                                value={beneficiary_account}
+                                placeholder="Enter Beneficiary Account"
+                                maxLength={11}
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    const value =
+                                        e.target.value;
+
+                                    if (!/^\d*$/.test(value)) {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            beneficiary_account:
+                                                "Only numeric digits allowed",
+                                        });
+
+                                        return;
+                                    }
+
+                                    setBeneficiaryAccount(value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        beneficiary_account: "",
+                                    });
+                                }}
+                            />
+
+                            {formErrors.beneficiary_account && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.beneficiary_account}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* IFSC */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                IFSC Code
+                            </label>
+
+                            <input
+                                type="text"
+                                value={ifsc}
+                                placeholder="Enter IFSC Code"
+                                maxLength={11}
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    const value =
+                                        e.target.value
+                                            .toUpperCase();
+
+                                    setIfsc(value);
+
+                                    if (
+                                        value.length > 0 &&
+                                        !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)
+                                    ) {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            ifsc:
+                                                "Invalid IFSC format",
+                                        });
+
+                                    } else {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            ifsc: "",
+                                        });
+                                    }
+                                }}
+                            />
+
+                            {formErrors.ifsc && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.ifsc}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* Cheque Number */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Cheque Number
+                            </label>
+
+                            <input
+                                type="text"
+                                value={cheque_number}
+                                placeholder="Enter 6 Digit Cheque Number"
+                                maxLength={6}
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    const value =
+                                        e.target.value;
+
+                                    if (!/^\d*$/.test(value)) {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            cheque_number:
+                                                "Only numeric digits allowed",
+                                        });
+
+                                        return;
+                                    }
+
+                                    setChequeNumber(value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        cheque_number: "",
+                                    });
+                                }}
+                            />
+
+                            {formErrors.cheque_number && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.cheque_number}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* Instrument Type */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Instrument Type
+                            </label>
+
+                            <input
+                                type="text"
+                                value={instrument_type}
+                                placeholder="Enter Instrument Type"
+                                maxLength={2}
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    const value =
+                                        e.target.value;
+
+                                    if (!/^\d*$/.test(value)) {
+
+                                        setFormErrors({
+                                            ...formErrors,
+                                            instrument_type:
+                                                "Only numeric digits allowed",
+                                        });
+
+                                        return;
+                                    }
+
+                                    setInstrumentType(value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        instrument_type: "",
+                                    });
+                                }}
+                            />
+
+                            {formErrors.instrument_type && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.instrument_type}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ========================= */}
+                        {/* Instrument Date */}
+                        {/* ========================= */}
+                        <div style={styles.formGroup}>
+
+                            <label style={styles.label}>
+                                Instrument Date
+                            </label>
+
+                            <input
+                                type="date"
+                                value={instrument_date}
+                                style={styles.input}
+                                required
+                                onChange={(e) => {
+
+                                    setInstrumentDate(
+                                        e.target.value
+                                    );
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        instrument_date: "",
+                                    });
+                                }}
+                            />
+
+                            {formErrors.instrument_date && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.instrument_date}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ================================= */}
+                    {/* Submit Button */}
+                    {/* ================================= */}
+                    <button
+                        type="submit"
+                        style={styles.primaryButton}
+                        disabled={loading}
+                    >
+                        {loading
+                            ? "Processing..."
+                            : "Create RTGS"}
+                    </button>
+                </form>
+            </div>
+
+            {/* ===================================== */}
+            {/* Error Section */}
+            {/* ===================================== */}
+            {error && (
+                <div style={styles.resultsCard}>
+                    <div style={styles.errorMsg}>
+                        <strong>Error:</strong> {error}
+                    </div>
+                </div>
+            )}
+
+            {/* ===================================== */}
+            {/* Response Section */}
+            {/* ===================================== */}
+            {response?.parsed && (
+                <div style={styles.resultsCard}>
+
+                    <h3 style={{ marginBottom: "20px" }}>
+                        RTGS Transaction Response
+                    </h3>
+
+                    <div style={styles.resultsList}>
+
+                        <div style={styles.resultItem}>
+
+                            <div style={styles.resultContent}>
+
+                                {/* ================================= */}
+                                {/* Dynamically Print Parsed Fields */}
+                                {/* ================================= */}
+                                {Object.entries(response.parsed).map(
+                                    ([key, value]) => (
+
+                                        <p key={key}>
+
+                                            <strong>
+                                                {key
+                                                    .replaceAll("_", " ")
+                                                    .toUpperCase()}
+                                                :
+                                            </strong>{" "}
+
+                                            {String(value)}
+
+                                        </p>
+                                    )
+                                )}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
