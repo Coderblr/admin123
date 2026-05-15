@@ -1,0 +1,347 @@
+"use client";
+
+import { useState } from "react";
+import { styles } from "../../styles/AppStyles";
+
+export default function CheckDigitEnquiryView() {
+    const [server, setServer] = useState("");
+    const [acc, setAcc] = useState("");
+
+    const [loading, setLoading] = useState(false);
+    const [response, setResponse] = useState(null);
+    const [error, setError] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
+
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+    // ==================================================
+    // Validation Function
+    // ==================================================
+    const validateForm = () => {
+        const errors = {};
+
+        // Server Validation
+        if (!server) {
+            errors.server = "Please select server";
+        }
+
+        // Account Validation
+        if (!acc) {
+            errors.acc = "Account number is required";
+        } else if (!/^\d+$/.test(acc)) {
+            errors.acc = "Account number must contain only digits";
+        } else if (acc.length < 10 || acc.length > 16) {
+            errors.acc =
+                "Account number must be between 10 and 16 digits";
+        }
+
+        setFormErrors(errors);
+
+        return Object.keys(errors).length === 0;
+    };
+
+    // ==================================================
+    // Submit Handler
+    // ==================================================
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setResponse(null);
+
+        try {
+            const payload = {
+                server: server,
+                acc: acc,
+            };
+
+            const res = await fetch(`${BASE_URL}/check_digit_enq`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            // ============================================
+            // API Error Handling
+            // ============================================
+            if (!res.ok) {
+                let errorMessage = `API Error ${res.status}`;
+
+                try {
+                    const errorData = await res.json();
+
+                    errorMessage =
+                        errorData.detail ||
+                        errorData.message ||
+                        errorMessage;
+                } catch {
+                    errorMessage = `${res.status} ${res.statusText}`;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            // ============================================
+            // Safe JSON Parsing
+            // ============================================
+            let data;
+
+            try {
+                data = await res.json();
+            } catch {
+                throw new Error("Invalid JSON response from server");
+            }
+
+            setResponse(data);
+
+        } catch (err) {
+            console.error("Check Digit API Error:", err);
+
+            setError(
+                err.message ||
+                    "Something went wrong while processing request"
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div>
+
+            {/* ========================================= */}
+            {/* Header Section */}
+            {/* ========================================= */}
+            <div style={styles.pageHeader}>
+                <div>
+                    <h1 style={styles.pageTitle}>
+                        Check Digit Enquiry
+                    </h1>
+
+                    <p style={styles.pageSubtitle}>
+                        Validate Account Check Digit Information
+                    </p>
+                </div>
+            </div>
+
+            {/* ========================================= */}
+            {/* Form Card */}
+            {/* ========================================= */}
+            <div style={styles.formCard}>
+                <form onSubmit={handleSubmit}>
+                    <div style={styles.formGrid}>
+
+                        {/* ================================= */}
+                        {/* Server Dropdown */}
+                        {/* ================================= */}
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>
+                                Server
+                            </label>
+
+                            <select
+                                value={server}
+                                onChange={(e) => {
+                                    setServer(e.target.value);
+
+                                    setFormErrors({
+                                        ...formErrors,
+                                        server: "",
+                                    });
+                                }}
+                                style={styles.select}
+                                required
+                            >
+                                <option value="">
+                                    Select Server
+                                </option>
+
+                                <option value="UAT">
+                                    UAT
+                                </option>
+
+                                <option value="PROD">
+                                    PROD
+                                </option>
+                            </select>
+
+                            {formErrors.server && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.server}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ================================= */}
+                        {/* Account Number */}
+                        {/* ================================= */}
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>
+                                Account Number
+                            </label>
+
+                            <input
+                                type="text"
+                                value={acc}
+                                placeholder="Enter Account Number"
+                                style={styles.input}
+                                required
+                                maxLength={16}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+
+                                    // Numeric validation
+                                    if (
+                                        !/^\d*$/.test(value)
+                                    ) {
+                                        setFormErrors({
+                                            ...formErrors,
+                                            acc:
+                                                "Only numeric digits are allowed",
+                                        });
+
+                                        return;
+                                    }
+
+                                    setAcc(value);
+
+                                    // Length Validation
+                                    if (
+                                        value.length > 0 &&
+                                        value.length < 10
+                                    ) {
+                                        setFormErrors({
+                                            ...formErrors,
+                                            acc:
+                                                "Minimum 10 digits required",
+                                        });
+                                    } else {
+                                        setFormErrors({
+                                            ...formErrors,
+                                            acc: "",
+                                        });
+                                    }
+                                }}
+                            />
+
+                            {formErrors.acc && (
+                                <div style={styles.fieldError}>
+                                    {formErrors.acc}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ================================= */}
+                    {/* Submit Button */}
+                    {/* ================================= */}
+                    <button
+                        type="submit"
+                        style={styles.primaryButton}
+                        disabled={loading}
+                    >
+                        {loading
+                            ? "Processing..."
+                            : "Check Digit"}
+                    </button>
+                </form>
+            </div>
+
+            {/* ========================================= */}
+            {/* Error Card */}
+            {/* ========================================= */}
+            {error && (
+                <div style={styles.resultsCard}>
+                    <div style={styles.errorMsg}>
+                        <strong>Error:</strong> {error}
+                    </div>
+                </div>
+            )}
+
+            {/* ========================================= */}
+            {/* Response Section */}
+            {/* ========================================= */}
+            {response && (
+                <div style={styles.resultsCard}>
+                    <h3 style={{ marginBottom: "20px" }}>
+                        Check Digit Response
+                    </h3>
+
+                    <div style={styles.resultsList}>
+                        <div style={styles.resultItem}>
+                            <div style={styles.resultContent}>
+
+                                <p>
+                                    <strong>Server:</strong>{" "}
+                                    {response.server || "N/A"}
+                                </p>
+
+                                <p>
+                                    <strong>Status:</strong>{" "}
+                                    {response?.parsed?.STATUS || "N/A"}
+                                </p>
+
+                                <p>
+                                    <strong>Account Number:</strong>{" "}
+                                    {acc}
+                                </p>
+
+                                <p>
+                                    <strong>Check Digit:</strong>{" "}
+                                    {response?.parsed?.CHECK_DIGIT || "N/A"}
+                                </p>
+
+                                <p>
+                                    <strong>Message:</strong>{" "}
+                                    {response?.parsed?.MESSAGE || "N/A"}
+                                </p>
+
+                                <p>
+                                    <strong>Response Code:</strong>{" "}
+                                    {response?.parsed?.RESPONSE_CODE || "N/A"}
+                                </p>
+
+                                {/* ================================= */}
+                                {/* Raw Response */}
+                                {/* ================================= */}
+                                <div style={{ marginTop: "20px" }}>
+                                    <p>
+                                        <strong>
+                                            Raw API Response
+                                        </strong>
+                                    </p>
+
+                                    <pre
+                                        style={{
+                                            background: "#f4f4f4",
+                                            padding: "12px",
+                                            borderRadius: "8px",
+                                            overflowX: "auto",
+                                            fontSize: "12px",
+                                            marginTop: "10px",
+                                            maxHeight: "400px",
+                                        }}
+                                    >
+                                        {JSON.stringify(
+                                            response,
+                                            null,
+                                            2
+                                        )}
+                                    </pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
