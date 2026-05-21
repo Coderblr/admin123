@@ -1,282 +1,409 @@
-# services/excel_understanding.py
-
-import pandas as pd
-import json
+import os
 import re
+from datetime import datetime
 
-class ExcelSchemaUnderstanding:
+import openpyxl
 
-    def __init__(self, file_path):
+from openpyxl.styles import (
+    Font,
+    PatternFill,
+    Alignment
+)
 
-        self.file_path = file_path
-        self.excel_data = None
+from generators.base_generator import generate_table_records
+from generators.table_registry import TABLE_REGISTRY
 
-        self.tables = {}
-        self.relationships = []
-        self.primary_keys = {}
-        self.foreign_keys = {}
 
-    # =====================================================
+class DataOrchestrator:
+
+    def __init__(self, upload_dir: str, output_dir: str):
+
+        self.upload_dir = upload_dir
+        self.output_dir = output_dir
+
+    # ==========================================================
+    # MAIN PROCESS
+    # ==========================================================
+
+    def process(
+        self,
+        filename: str,
+        num_records: int
+    ) -> str:
+
+        file_path = os.path.join(
+            self.upload_dir,
+            filename
+        )
+
+        table_schemas = self._parse_input_file(
+            file_path
+        )
+
+        if not table_schemas:
+
+            raise ValueError(
+                f"No schemas found in file: {filename}"
+            )
+
+        timestamp = datetime.now().strftime(
+            "%Y%m%d_%H%M%S"
+        )
+
+        output_filename = (
+            f"generated_{timestamp}.xlsx"
+        )
+
+        output_path = os.path.join(
+            self.output_dir,
+            output_filename
+        )
+
+        # ======================================
+        # CREATE WORKBOOK
+        # ======================================
+
+        wb = openpyxl.Workbook()
+
+        wb.remove(wb.active)
+
+        # ======================================
+        # PROCESS EACH TABLE
+        # ======================================
+
+        for table_name, columns in table_schemas.items():
+
+            print(
+                f"[INFO] Generating {num_records} "
+                f"records for table: {table_name}"
+            )
+
+            schema_columns = TABLE_REGISTRY.get(
+                table_name,
+                columns
+            )
+
+            records = generate_table_records(
+                table_name,
+                schema_columns,
+                num_records
+            )
+
+            if not records:
+
+                print(
+                    f"[WARN] No records generated "
+                    f"for {table_name}"
+                )
+
+                records = []
+
+            self._write_sheet(
+                wb,
+                table_name,
+                schema_columns,
+                records
+            )
+
+        wb.save(output_path)
+
+        print(
+            f"[INFO] Output saved: {output_path}"
+        )
+
+        return output_filename
+
+    # ==========================================================
+    # PARSE INPUT FILE
+    # ==========================================================
+
+    def _parse_input_file(
+        self,
+        file_path: str
+    ):
+
+        ext = os.path.splitext(
+            file_path
+        )[1].lower()
+
+        if ext in [".xlsx", ".xls"]:
+
+            lines = self._read_excel_lines(
+                file_path
+            )
+
+        else:
+
+            with open(
+                file_path,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                lines = f.read().splitlines()
+
+        return self._extract_schemas(lines)
+
+    # ==========================================================
     # READ EXCEL
-    # =====================================================
+    # ==========================================================
 
-    def read_excel(self):
+    def _read_excel_lines(
+        self,
+        file_path: str
+    ):
 
-        self.excel_data = pd.read_excel(self.file_path)
+        wb = openpyxl.load_workbook(
+            file_path
+        )
 
-        self.excel_data.columns = [
-            col.strip().upper()
-            for col in self.excel_data.columns
-        ]
+        lines = []
 
-        return self.excel_data
+        for ws in wb.worksheets:
 
-    # =====================================================
-    # DETECT TABLES
-    # =====================================================
+            for row in ws.iter_rows(
+                values_only=True
+            ):
 
-    def detect_tables(self):
+                parts = []
 
-        for _, row in self.excel_data.iterrows():
+                for cell in row:
 
-            table_name = str(row["TABLE_NAME"]).strip()
+                    if cell is not None:
 
-            if table_name not in self.tables:
-                self.tables[table_name] = []
+                        value = str(cell).strip()
 
-            self.tables[table_name].append({
-                "column_name": str(row["COLUMN_NAME"]).strip(),
-                "datatype": str(row["DATATYPE"]).strip(),
-                "primary_key": str(
-                    row.get("PRIMARY_KEY", "NO")
-                ).strip(),
+                        if value:
+                            parts.append(value)
 
-                "foreign_key": str(
-                    row.get("FOREIGN_KEY", "NO")
-                ).strip(),
+                if parts:
 
-                "references": str(
-                    row.get("REFERENCES", "")
-                ).strip()
+                    line = " ~ ".join(parts)
+
+                    lines.append(line)
+
+        return lines
+
+    # ==========================================================
+    # EXTRACT SCHEMAS
+    # ==========================================================
+
+    def _extract_schemas(
+        self,
+        lines
+    ):
+
+        schemas = {}
+
+        pattern = re.compile(
+            r"^\s*([A-Z0-9_]+)\s*~\s*([A-Z0-9_]+)\s*~\s*([A-Z0-9(),\s]+)\s*$",
+            re.IGNORECASE
+        )
+
+        for line in lines:
+
+            line = (
+                line.strip()
+                .strip('"')
+                .strip("'")
+            )
+
+            match = pattern.match(line)
+
+            if not match:
+                continue
+
+            table_name = (
+                match.group(1)
+                .strip()
+                .upper()
+            )
+
+            col_name = (
+                match.group(2)
+                .strip()
+                .upper()
+            )
+
+            col_type = (
+                match.group(3)
+                .strip()
+                .upper()
+            )
+
+            schemas.setdefault(
+                table_name,
+                []
+            )
+
+            schemas[table_name].append({
+                "name": col_name,
+                "type": col_type
             })
 
-        return self.tables
+        return schemas
 
-    # =====================================================
-    # DETECT PRIMARY KEYS
-    # =====================================================
+    # ==========================================================
+    # WRITE EXCEL SHEET
+    # ==========================================================
 
-    def detect_primary_keys(self):
+    def _write_sheet(
+        self,
+        wb,
+        table_name,
+        columns,
+        records
+    ):
 
-        for table, columns in self.tables.items():
+        sheet_name = (
+            table_name[:31]
+            if len(table_name) > 31
+            else table_name
+        )
 
-            self.primary_keys[table] = []
+        ws = wb.create_sheet(
+            title=sheet_name
+        )
 
-            for column in columns:
+        # ======================================
+        # HEADER STYLE
+        # ======================================
 
-                if column["primary_key"].upper() == "YES":
+        header_fill = PatternFill(
+            "solid",
+            fgColor="1F4E79"
+        )
 
-                    self.primary_keys[table].append(
-                        column["column_name"]
+        header_font = Font(
+            bold=True,
+            color="FFFFFF",
+            size=11
+        )
+
+        alt_fill = PatternFill(
+            "solid",
+            fgColor="EBF3FB"
+        )
+
+        # ======================================
+        # COLUMN NAMES
+        # ======================================
+
+        col_names = [
+            col["name"]
+            for col in columns
+        ]
+
+        # ======================================
+        # WRITE HEADER
+        # ======================================
+
+        for c_idx, col_name in enumerate(
+            col_names,
+            start=1
+        ):
+
+            cell = ws.cell(
+                row=1,
+                column=c_idx,
+                value=str(col_name)
+            )
+
+            cell.font = header_font
+            cell.fill = header_fill
+
+            cell.alignment = Alignment(
+                horizontal="center",
+                vertical="center"
+            )
+
+        # ======================================
+        # WRITE DATA
+        # ======================================
+
+        for r_idx, record in enumerate(
+            records,
+            start=2
+        ):
+
+            # VERY IMPORTANT FIX
+            if not isinstance(record, dict):
+                continue
+
+            for c_idx, col_name in enumerate(
+                col_names,
+                start=1
+            ):
+
+                value = record.get(
+                    col_name,
+                    ""
+                )
+
+                # ==================================
+                # FIX EXCEL DICT ERROR
+                # ==================================
+
+                if isinstance(value, dict):
+
+                    value = str(value)
+
+                elif isinstance(value, list):
+
+                    value = ", ".join(
+                        map(str, value)
                     )
 
-        return self.primary_keys
-
-    # =====================================================
-    # DETECT FOREIGN KEYS
-    # =====================================================
-
-    def detect_foreign_keys(self):
-
-        for table, columns in self.tables.items():
-
-            self.foreign_keys[table] = []
-
-            for column in columns:
-
-                if column["foreign_key"].upper() == "YES":
-
-                    self.foreign_keys[table].append({
-                        "column": column["column_name"],
-                        "references": column["references"]
-                    })
-
-        return self.foreign_keys
-
-    # =====================================================
-    # BUILD RELATIONSHIPS
-    # =====================================================
-
-    def build_relationships(self):
-
-        for table, columns in self.tables.items():
-
-            for column in columns:
-
-                if column["foreign_key"].upper() == "YES":
-
-                    reference = column["references"]
-
-                    if "." in reference:
-
-                        target_table = reference.split(".")[0]
-                        target_column = reference.split(".")[1]
-
-                    else:
-
-                        target_table = reference
-                        target_column = ""
-
-                    self.relationships.append({
-                        "source_table": table,
-                        "source_column": column["column_name"],
-                        "target_table": target_table,
-                        "target_column": target_column
-                    })
-
-        return self.relationships
-
-    # =====================================================
-    # DETECT COMMON IDS
-    # =====================================================
-
-    def detect_common_columns(self):
-
-        common_columns = {}
-
-        all_columns = {}
-
-        for table, columns in self.tables.items():
-
-            for column in columns:
-
-                column_name = column["column_name"]
-
-                if column_name not in all_columns:
-                    all_columns[column_name] = []
-
-                all_columns[column_name].append(table)
-
-        for column, tables in all_columns.items():
-
-            if len(tables) > 1:
-
-                common_columns[column] = tables
-
-        return common_columns
-
-    # =====================================================
-    # UNDERSTAND BUSINESS MEANING
-    # =====================================================
-
-    def understand_schema(self):
-
-        understanding = {}
-
-        for table in self.tables:
-
-            if "ACCOUNT" in table.upper():
-
-                understanding[table] = \
-                    "Contains account related data"
-
-            elif "SECURITY" in table.upper():
-
-                understanding[table] = \
-                    "Contains collateral/security details"
-
-            elif "BRWR" in table.upper():
-
-                understanding[table] = \
-                    "Contains borrower and guarantor mapping"
-
-            elif "LOS" in table.upper():
-
-                understanding[table] = \
-                    "Contains Loan Origination System data"
-
-            elif "LMS" in table.upper():
-
-                understanding[table] = \
-                    "Contains Loan Management System data"
-
-            else:
-
-                understanding[table] = \
-                    "General business table"
-
-        return understanding
-
-    # =====================================================
-    # GENERATE COMPLETE METADATA
-    # =====================================================
-
-    def generate_metadata(self):
-
-        metadata = {
-            "tables": self.tables,
-            "primary_keys": self.primary_keys,
-            "foreign_keys": self.foreign_keys,
-            "relationships": self.relationships,
-            "common_columns": self.detect_common_columns(),
-            "business_understanding": self.understand_schema()
-        }
-
-        return metadata
-
-    # =====================================================
-    # GENERATE LLM CONTEXT
-    # =====================================================
-
-    def generate_llm_context(self):
-
-        metadata = self.generate_metadata()
-
-        context = f"""
-        DATABASE SCHEMA UNDERSTANDING
-
-        TABLES:
-        {json.dumps(metadata['tables'], indent=2)}
-
-        PRIMARY KEYS:
-        {json.dumps(metadata['primary_keys'], indent=2)}
-
-        FOREIGN KEYS:
-        {json.dumps(metadata['foreign_keys'], indent=2)}
-
-        RELATIONSHIPS:
-        {json.dumps(metadata['relationships'], indent=2)}
-
-        COMMON COLUMNS:
-        {json.dumps(metadata['common_columns'], indent=2)}
-
-        BUSINESS UNDERSTANDING:
-        {json.dumps(metadata['business_understanding'], indent=2)}
-        """
-
-        return context
-
-    # =====================================================
-    # RUN EVERYTHING
-    # =====================================================
-
-    def analyze(self):
-
-        self.read_excel()
-
-        self.detect_tables()
-
-        self.detect_primary_keys()
-
-        self.detect_foreign_keys()
-
-        self.build_relationships()
-
-        metadata = self.generate_metadata()
-
-        llm_context = self.generate_llm_context()
-
-        return {
-            "metadata": metadata,
-            "llm_context": llm_context
-        }
+                elif value is None:
+
+                    value = ""
+
+                else:
+
+                    value = str(value)
+
+                cell = ws.cell(
+                    row=r_idx,
+                    column=c_idx,
+                    value=value
+                )
+
+                cell.alignment = Alignment(
+                    vertical="center"
+                )
+
+                if r_idx % 2 == 0:
+                    cell.fill = alt_fill
+
+        # ======================================
+        # AUTO WIDTH
+        # ======================================
+
+        for col_cells in ws.columns:
+
+            max_len = max(
+                (
+                    len(str(cell.value))
+                    for cell in col_cells
+                    if cell.value
+                ),
+                default=10
+            )
+
+            ws.column_dimensions[
+                col_cells[0].column_letter
+            ].width = min(
+                max_len + 4,
+                50
+            )
+
+        # ======================================
+        # FREEZE HEADER
+        # ======================================
+
+        ws.freeze_panes = "A2"
+
+        print(
+            f"[INFO] Sheet '{sheet_name}' "
+            f"written successfully."
+        )
