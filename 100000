@@ -1,409 +1,313 @@
-import os
-import re
-from datetime import datetime
+"use client";
 
-import openpyxl
+import { useState } from "react";
+import { styles } from "../../styles/AppStyles";
+import accCreationService from "../../services/accCreationService";
+import RegionDropdown from "../../utils/RegionDropdown";
 
-from openpyxl.styles import (
-    Font,
-    PatternFill,
-    Alignment
-)
+const isOnlyDigits = (value) => /^\d*$/.test(value);
+const isAlphaNumeric = (value) => /^[A-Za-z0-9]*$/.test(value);
 
-from generators.base_generator import generate_table_records
-from generators.table_registry import TABLE_REGISTRY
+export default function AccountCreationView() {
 
+    const [server, setServer] = useState("K");
 
-class DataOrchestrator:
+    const [cif, setCif] = useState("");
+    const [product, setProduct] = useState("");
+    const [n, setN] = useState("1");
 
-    def __init__(self, upload_dir: str, output_dir: str):
+    const [loading, setLoading] = useState(false);
 
-        self.upload_dir = upload_dir
-        self.output_dir = output_dir
+    const [error, setError] = useState("");
 
-    # ==========================================================
-    # MAIN PROCESS
-    # ==========================================================
+    const [result, setResult] = useState(null);
 
-    def process(
-        self,
-        filename: str,
-        num_records: int
-    ) -> str:
+    // =========================
+    // HANDLE SUBMIT
+    // =========================
 
-        file_path = os.path.join(
-            self.upload_dir,
-            filename
-        )
+    const handleSubmit = async () => {
 
-        table_schemas = self._parse_input_file(
-            file_path
-        )
+        setError("");
+        setResult(null);
 
-        if not table_schemas:
+        // CIF Validation
+        if (!/^\d{11}$/.test(cif)) {
+            setError("CIF must be exactly 11 digits");
+            return;
+        }
 
-            raise ValueError(
-                f"No schemas found in file: {filename}"
-            )
+        // PRODUCT Validation
+        if (!isAlphaNumeric(product)) {
+            setError("Product must be alphanumeric only");
+            return;
+        }
 
-        timestamp = datetime.now().strftime(
-            "%Y%m%d_%H%M%S"
-        )
+        if (product.length < 2 || product.length > 10) {
+            setError("Product length must be between 2 and 10");
+            return;
+        }
 
-        output_filename = (
-            f"generated_{timestamp}.xlsx"
-        )
+        // N Validation
+        if (!/^\d+$/.test(n)) {
+            setError("Count must be numeric");
+            return;
+        }
 
-        output_path = os.path.join(
-            self.output_dir,
-            output_filename
-        )
+        const total = Number(n);
 
-        # ======================================
-        # CREATE WORKBOOK
-        # ======================================
+        if (total < 1 || total > 100) {
+            setError("Count must be between 1 and 100");
+            return;
+        }
 
-        wb = openpyxl.Workbook()
+        try {
 
-        wb.remove(wb.active)
+            setLoading(true);
 
-        # ======================================
-        # PROCESS EACH TABLE
-        # ======================================
+            const response = await accCreationService.create({
 
-        for table_name, columns in table_schemas.items():
+                server,
+                cif,
+                product,
+                n: total
 
-            print(
-                f"[INFO] Generating {num_records} "
-                f"records for table: {table_name}"
-            )
+            });
 
-            schema_columns = TABLE_REGISTRY.get(
-                table_name,
-                columns
-            )
+            console.log("API RESPONSE:", response);
 
-            records = generate_table_records(
-                table_name,
-                schema_columns,
-                num_records
-            )
+            setResult(response);
 
-            if not records:
+        } catch (err) {
 
-                print(
-                    f"[WARN] No records generated "
-                    f"for {table_name}"
-                )
+            console.error(err);
 
-                records = []
+            setError(
+                err?.response?.data?.detail ||
+                "Account creation failed"
+            );
 
-            self._write_sheet(
-                wb,
-                table_name,
-                schema_columns,
-                records
-            )
+        } finally {
 
-        wb.save(output_path)
+            setLoading(false);
 
-        print(
-            f"[INFO] Output saved: {output_path}"
-        )
+        }
+    };
 
-        return output_filename
+    return (
 
-    # ==========================================================
-    # PARSE INPUT FILE
-    # ==========================================================
+        <div>
 
-    def _parse_input_file(
-        self,
-        file_path: str
-    ):
+            {/* PAGE HEADER */}
 
-        ext = os.path.splitext(
-            file_path
-        )[1].lower()
+            <div style={styles.pageHeader}>
+                <h1 style={styles.pageTitle}>
+                    Account Creation
+                </h1>
+            </div>
 
-        if ext in [".xlsx", ".xls"]:
+            {/* ERROR */}
 
-            lines = self._read_excel_lines(
-                file_path
-            )
+            {error && (
+                <div style={styles.fieldError}>
+                    {error}
+                </div>
+            )}
 
-        else:
+            {/* FORM CARD */}
 
-            with open(
-                file_path,
-                "r",
-                encoding="utf-8"
-            ) as f:
+            <div style={styles.formCard}>
 
-                lines = f.read().splitlines()
+                <div style={styles.formGrid}>
 
-        return self._extract_schemas(lines)
+                    {/* SERVER */}
 
-    # ==========================================================
-    # READ EXCEL
-    # ==========================================================
+                    <RegionDropdown
+                        value={server}
+                        onChange={setServer}
+                    />
 
-    def _read_excel_lines(
-        self,
-        file_path: str
-    ):
+                    {/* CIF */}
 
-        wb = openpyxl.load_workbook(
-            file_path
-        )
+                    <div style={styles.formGroup}>
 
-        lines = []
+                        <label style={styles.label}>
+                            CIF Number
+                        </label>
 
-        for ws in wb.worksheets:
+                        <input
+                            style={styles.input}
+                            placeholder="11 digit CIF"
+                            value={cif}
+                            onChange={(e) => {
 
-            for row in ws.iter_rows(
-                values_only=True
-            ):
+                                const val = e.target.value;
 
-                parts = []
+                                if (
+                                    isOnlyDigits(val) &&
+                                    val.length <= 11
+                                ) {
+                                    setCif(val);
+                                }
+                            }}
+                        />
 
-                for cell in row:
+                    </div>
 
-                    if cell is not None:
+                    {/* PRODUCT */}
 
-                        value = str(cell).strip()
+                    <div style={styles.formGroup}>
 
-                        if value:
-                            parts.append(value)
+                        <label style={styles.label}>
+                            Product Code
+                        </label>
 
-                if parts:
+                        <input
+                            style={styles.input}
+                            placeholder="ex. SBGEN"
+                            value={product}
+                            onChange={(e) => {
 
-                    line = " ~ ".join(parts)
+                                const val = e.target.value.toUpperCase();
 
-                    lines.append(line)
+                                if (
+                                    isAlphaNumeric(val) &&
+                                    val.length <= 10
+                                ) {
+                                    setProduct(val);
+                                }
+                            }}
+                        />
 
-        return lines
+                    </div>
 
-    # ==========================================================
-    # EXTRACT SCHEMAS
-    # ==========================================================
+                    {/* COUNT */}
 
-    def _extract_schemas(
-        self,
-        lines
-    ):
+                    <div style={styles.formGroup}>
 
-        schemas = {}
+                        <label style={styles.label}>
+                            Number Of Accounts
+                        </label>
 
-        pattern = re.compile(
-            r"^\s*([A-Z0-9_]+)\s*~\s*([A-Z0-9_]+)\s*~\s*([A-Z0-9(),\s]+)\s*$",
-            re.IGNORECASE
-        )
+                        <input
+                            style={styles.input}
+                            placeholder="1 to 100"
+                            value={n}
+                            onChange={(e) => {
 
-        for line in lines:
+                                const val = e.target.value;
 
-            line = (
-                line.strip()
-                .strip('"')
-                .strip("'")
-            )
+                                if (
+                                    isOnlyDigits(val) &&
+                                    val.length <= 3
+                                ) {
+                                    setN(val);
+                                }
+                            }}
+                        />
 
-            match = pattern.match(line)
+                    </div>
 
-            if not match:
-                continue
+                </div>
 
-            table_name = (
-                match.group(1)
-                .strip()
-                .upper()
-            )
+                {/* BUTTON */}
 
-            col_name = (
-                match.group(2)
-                .strip()
-                .upper()
-            )
+                <div style={{ marginTop: "24px" }}>
 
-            col_type = (
-                match.group(3)
-                .strip()
-                .upper()
-            )
+                    <button
+                        onClick={handleSubmit}
+                        style={styles.primaryButton}
+                        disabled={loading}
+                    >
 
-            schemas.setdefault(
-                table_name,
-                []
-            )
+                        {loading
+                            ? "Processing..."
+                            : "Create Account"}
 
-            schemas[table_name].append({
-                "name": col_name,
-                "type": col_type
-            })
+                    </button>
 
-        return schemas
+                </div>
 
-    # ==========================================================
-    # WRITE EXCEL SHEET
-    # ==========================================================
+            </div>
 
-    def _write_sheet(
-        self,
-        wb,
-        table_name,
-        columns,
-        records
-    ):
+            {/* RESPONSE */}
 
-        sheet_name = (
-            table_name[:31]
-            if len(table_name) > 31
-            else table_name
-        )
+            {result?.results && (
 
-        ws = wb.create_sheet(
-            title=sheet_name
-        )
+                <div style={styles.resultsCard}>
 
-        # ======================================
-        # HEADER STYLE
-        # ======================================
+                    <h3 style={{ marginBottom: "20px" }}>
+                        Account Creation Response
+                    </h3>
 
-        header_fill = PatternFill(
-            "solid",
-            fgColor="1F4E79"
-        )
+                    <div style={styles.resultsList}>
 
-        header_font = Font(
-            bold=True,
-            color="FFFFFF",
-            size=11
-        )
+                        {result.results.map((item, index) => (
 
-        alt_fill = PatternFill(
-            "solid",
-            fgColor="EBF3FB"
-        )
+                            <div
+                                key={index}
+                                style={styles.resultItem}
+                            >
 
-        # ======================================
-        # COLUMN NAMES
-        # ======================================
+                                <div style={styles.resultContent}>
 
-        col_names = [
-            col["name"]
-            for col in columns
-        ]
+                                    <p>
+                                        <strong>
+                                            ATTEMPT :
+                                        </strong>{" "}
+                                        {item.attempt}
+                                    </p>
 
-        # ======================================
-        # WRITE HEADER
-        # ======================================
+                                    {item.parsed ? (
 
-        for c_idx, col_name in enumerate(
-            col_names,
-            start=1
-        ):
+                                        Object.entries(item.parsed)
+                                            .filter(([key, value]) =>
+                                                value !== null &&
+                                                value !== ""
+                                            )
+                                            .map(([key, value]) => (
 
-            cell = ws.cell(
-                row=1,
-                column=c_idx,
-                value=str(col_name)
-            )
+                                                <p key={key}>
 
-            cell.font = header_font
-            cell.fill = header_fill
+                                                    <strong>
+                                                        {key
+                                                            .replaceAll("_", " ")
+                                                            .toUpperCase()}
+                                                        :
+                                                    </strong>{" "}
 
-            cell.alignment = Alignment(
-                horizontal="center",
-                vertical="center"
-            )
+                                                    {String(value)}
 
-        # ======================================
-        # WRITE DATA
-        # ======================================
+                                                </p>
 
-        for r_idx, record in enumerate(
-            records,
-            start=2
-        ):
+                                            ))
 
-            # VERY IMPORTANT FIX
-            if not isinstance(record, dict):
-                continue
+                                    ) : (
 
-            for c_idx, col_name in enumerate(
-                col_names,
-                start=1
-            ):
+                                        <p style={{ color: "red" }}>
 
-                value = record.get(
-                    col_name,
-                    ""
-                )
+                                            <strong>
+                                                ERROR :
+                                            </strong>{" "}
 
-                # ==================================
-                # FIX EXCEL DICT ERROR
-                # ==================================
+                                            {item.error}
 
-                if isinstance(value, dict):
+                                        </p>
 
-                    value = str(value)
+                                    )}
 
-                elif isinstance(value, list):
+                                </div>
 
-                    value = ", ".join(
-                        map(str, value)
-                    )
+                            </div>
 
-                elif value is None:
+                        ))}
 
-                    value = ""
+                    </div>
 
-                else:
+                </div>
 
-                    value = str(value)
+            )}
 
-                cell = ws.cell(
-                    row=r_idx,
-                    column=c_idx,
-                    value=value
-                )
-
-                cell.alignment = Alignment(
-                    vertical="center"
-                )
-
-                if r_idx % 2 == 0:
-                    cell.fill = alt_fill
-
-        # ======================================
-        # AUTO WIDTH
-        # ======================================
-
-        for col_cells in ws.columns:
-
-            max_len = max(
-                (
-                    len(str(cell.value))
-                    for cell in col_cells
-                    if cell.value
-                ),
-                default=10
-            )
-
-            ws.column_dimensions[
-                col_cells[0].column_letter
-            ].width = min(
-                max_len + 4,
-                50
-            )
-
-        # ======================================
-        # FREEZE HEADER
-        # ======================================
-
-        ws.freeze_panes = "A2"
-
-        print(
-            f"[INFO] Sheet '{sheet_name}' "
-            f"written successfully."
-        )
+        </div>
+    );
+}
