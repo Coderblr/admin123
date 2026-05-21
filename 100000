@@ -1,265 +1,282 @@
-"use client";
+# services/excel_understanding.py
 
-import { useState } from "react";
+import pandas as pd
+import json
+import re
 
-export default function AdminUserCreateView() {
+class ExcelSchemaUnderstanding:
 
-  const [form, setForm] = useState({
-    username: "",
-    firstName: "",
-    lastName: "",
-    departmentCode: "",
-    userType: "",
-    default_password: "",
-  });
+    def __init__(self, file_path):
 
-  const [error, setError] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState(null);
+        self.file_path = file_path
+        self.excel_data = None
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+        self.tables = {}
+        self.relationships = []
+        self.primary_keys = {}
+        self.foreign_keys = {}
 
-  const departments = [
-    { label: "IT-Trade Finance & SCF (171)", value: "171" },
-    { label: "IT-Corporate & SME Loans (450)", value: "450" },
-    { label: "IT-Retail Loans (382)", value: "382" },
-  ];
+    # =====================================================
+    # READ EXCEL
+    # =====================================================
 
-  const userTypes = [
-    { label: "Admin", value: "1" },
-    { label: "User", value: "3" },
-  ];
+    def read_excel(self):
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+        self.excel_data = pd.read_excel(self.file_path)
 
-  // ✅ VALIDATION
-  const validateForm = () => {
-    let newErrors = {};
+        self.excel_data.columns = [
+            col.strip().upper()
+            for col in self.excel_data.columns
+        ]
 
-    if (!/^[a-zA-Z0-9]{1,16}$/.test(form.username))
-      newErrors.username = "Only letters & numbers (max 16)";
+        return self.excel_data
 
-    if (!/^[A-Za-z]{1,20}$/.test(form.firstName))
-      newErrors.firstName = "Only letters (max 20)";
+    # =====================================================
+    # DETECT TABLES
+    # =====================================================
 
-    if (!/^[A-Za-z]{1,20}$/.test(form.lastName))
-      newErrors.lastName = "Only letters (max 20)";
+    def detect_tables(self):
 
-    if (!form.departmentCode)
-      newErrors.departmentCode = "Select department";
+        for _, row in self.excel_data.iterrows():
 
-    if (!form.userType)
-      newErrors.userType = "Select user type";
+            table_name = str(row["TABLE_NAME"]).strip()
 
-    if (form.default_password && form.default_password.length > 15)
-      newErrors.default_password = "Max 15 characters allowed";
+            if table_name not in self.tables:
+                self.tables[table_name] = []
 
-    setError(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+            self.tables[table_name].append({
+                "column_name": str(row["COLUMN_NAME"]).strip(),
+                "datatype": str(row["DATATYPE"]).strip(),
+                "primary_key": str(
+                    row.get("PRIMARY_KEY", "NO")
+                ).strip(),
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+                "foreign_key": str(
+                    row.get("FOREIGN_KEY", "NO")
+                ).strip(),
 
-    setLoading(true);
-    setError({});
-    setResponse(null);
+                "references": str(
+                    row.get("REFERENCES", "")
+                ).strip()
+            })
 
-    try {
-      const res = await fetch(`${BASE_URL}/admin/users`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+        return self.tables
 
-      const data = await res.json();
+    # =====================================================
+    # DETECT PRIMARY KEYS
+    # =====================================================
 
-      if (!res.ok) {
-        setError({ api: data.detail || "Failed to create user" });
-        return;
-      }
+    def detect_primary_keys(self):
 
-      setResponse(data);
+        for table, columns in self.tables.items():
 
-    } catch {
-      setError({ api: "Server error" });
-    } finally {
-      setLoading(false);
-    }
-  };
+            self.primary_keys[table] = []
 
-  return (
-    <div style={pageWrapper}>
-      <div style={card}>
+            for column in columns:
 
-        <div style={cardHeader}>
-          <h2 style={title}>Create User</h2>
-          <p style={subtitle}>
-            Create a system user and generate temporary credentials
-          </p>
-        </div>
+                if column["primary_key"].upper() == "YES":
 
-        <div style={formGrid}>
-          <Input label="Username" name="username" value={form.username} onChange={handleChange} error={error.username} />
-          <Input label="First Name" name="firstName" value={form.firstName} onChange={handleChange} error={error.firstName} />
-          <Input label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} error={error.lastName} />
+                    self.primary_keys[table].append(
+                        column["column_name"]
+                    )
 
-          <div style={field}>
-            <label style={label}>Department</label>
-            <select name="departmentCode" value={form.departmentCode} onChange={handleChange} style={input}>
-              <option value="">Select Department</option>
-              {departments.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
-            {error.departmentCode && <span style={errorText}>{error.departmentCode}</span>}
-          </div>
+        return self.primary_keys
 
-          <div style={field}>
-            <label style={label}>User Type</label>
-            <select name="userType" value={form.userType} onChange={handleChange} style={input}>
-              <option value="">Select User Type</option>
-              {userTypes.map((u) => (
-                <option key={u.value} value={u.value}>{u.label}</option>
-              ))}
-            </select>
-            {error.userType && <span style={errorText}>{error.userType}</span>}
-          </div>
+    # =====================================================
+    # DETECT FOREIGN KEYS
+    # =====================================================
 
-          <Input label="Default Password (Optional)" name="default_password" value={form.default_password} onChange={handleChange} error={error.default_password} />
-        </div>
+    def detect_foreign_keys(self):
 
-        <div style={buttonRow}>
-          <button onClick={handleSubmit} disabled={loading} style={submitButton}>
-            {loading ? "Creating..." : "Create User"}
-          </button>
-        </div>
+        for table, columns in self.tables.items():
 
-        {error.api && <div style={errorBox}>{error.api}</div>}
+            self.foreign_keys[table] = []
 
-        {response && (
-          <div style={successCard}>
-            <h4>User Created</h4>
-            <p><b>Username:</b> {response.username}</p>
-            <p><b>Password:</b> {response.temporary_password}</p>
-          </div>
-        )}
+            for column in columns:
 
-      </div>
-    </div>
-  );
-}
+                if column["foreign_key"].upper() == "YES":
 
-// ✅ Input Component
-function Input({ label: lbl, name, value, onChange, error }) {
-  return (
-    <div style={field}>
-      <label style={label}>{lbl}</label>
-      <input
-        name={name}
-        value={value}
-        onChange={onChange}
-        style={{
-          ...input,
-          border: error ? "1px solid red" : input.border,
-        }}
-      />
-      {error && <span style={errorText}>{error}</span>}
-    </div>
-  );
-}
+                    self.foreign_keys[table].append({
+                        "column": column["column_name"],
+                        "references": column["references"]
+                    })
 
-/* ================= STYLES ================= */
+        return self.foreign_keys
 
-const pageWrapper = {
-  padding: "30px 40px",
-  background: "#f5f7fa",
-  minHeight: "100vh",
-};
+    # =====================================================
+    # BUILD RELATIONSHIPS
+    # =====================================================
 
-const card = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "25px 30px",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-  maxWidth: "1000px",
-};
+    def build_relationships(self):
 
-const cardHeader = {
-  marginBottom: "20px",
-};
+        for table, columns in self.tables.items():
 
-const title = {
-  fontSize: "22px",
-  fontWeight: "700",
-};
+            for column in columns:
 
-const subtitle = {
-  fontSize: "13px",
-  color: "#6b7280",
-};
+                if column["foreign_key"].upper() == "YES":
 
-const formGrid = {
-  display: "grid",
-  gridTemplateColumns: "1fr 1fr",
-  gap: "18px",
-};
+                    reference = column["references"]
 
-const field = {
-  display: "flex",
-  flexDirection: "column",
-};
+                    if "." in reference:
 
-const label = {
-  fontSize: "12px",
-  fontWeight: "600",
-  marginBottom: "6px",
-};
+                        target_table = reference.split(".")[0]
+                        target_column = reference.split(".")[1]
 
-const input = {
-  padding: "10px",
-  borderRadius: "6px",
-  border: "1px solid #d1d5db",
-  fontSize: "14px",
-};
+                    else:
 
-const errorText = {
-  color: "#ef4444",
-  fontSize: "12px",
-  marginTop: "4px",
-};
+                        target_table = reference
+                        target_column = ""
 
-const buttonRow = {
-  marginTop: "25px",
-};
+                    self.relationships.append({
+                        "source_table": table,
+                        "source_column": column["column_name"],
+                        "target_table": target_table,
+                        "target_column": target_column
+                    })
 
-const submitButton = {
-  padding: "10px 18px",
-  background: "#2563eb",
-  color: "#fff",
-  border: "none",
-  borderRadius: "6px",
-  fontSize: "14px",
-  fontWeight: "600",
-  cursor: "pointer",
-};
+        return self.relationships
 
-const errorBox = {
-  marginTop: "15px",
-  padding: "12px",
-  background: "#fef2f2",
-  border: "1px solid #ef4444",
-  borderRadius: "6px",
-  color: "#b91c1c",
-};
+    # =====================================================
+    # DETECT COMMON IDS
+    # =====================================================
 
-const successCard = {
-  marginTop: "20px",
-  padding: "15px",
-  background: "#ecfdf5",
-  border: "1px solid #10b981",
-  borderRadius: "8px",
-};
+    def detect_common_columns(self):
+
+        common_columns = {}
+
+        all_columns = {}
+
+        for table, columns in self.tables.items():
+
+            for column in columns:
+
+                column_name = column["column_name"]
+
+                if column_name not in all_columns:
+                    all_columns[column_name] = []
+
+                all_columns[column_name].append(table)
+
+        for column, tables in all_columns.items():
+
+            if len(tables) > 1:
+
+                common_columns[column] = tables
+
+        return common_columns
+
+    # =====================================================
+    # UNDERSTAND BUSINESS MEANING
+    # =====================================================
+
+    def understand_schema(self):
+
+        understanding = {}
+
+        for table in self.tables:
+
+            if "ACCOUNT" in table.upper():
+
+                understanding[table] = \
+                    "Contains account related data"
+
+            elif "SECURITY" in table.upper():
+
+                understanding[table] = \
+                    "Contains collateral/security details"
+
+            elif "BRWR" in table.upper():
+
+                understanding[table] = \
+                    "Contains borrower and guarantor mapping"
+
+            elif "LOS" in table.upper():
+
+                understanding[table] = \
+                    "Contains Loan Origination System data"
+
+            elif "LMS" in table.upper():
+
+                understanding[table] = \
+                    "Contains Loan Management System data"
+
+            else:
+
+                understanding[table] = \
+                    "General business table"
+
+        return understanding
+
+    # =====================================================
+    # GENERATE COMPLETE METADATA
+    # =====================================================
+
+    def generate_metadata(self):
+
+        metadata = {
+            "tables": self.tables,
+            "primary_keys": self.primary_keys,
+            "foreign_keys": self.foreign_keys,
+            "relationships": self.relationships,
+            "common_columns": self.detect_common_columns(),
+            "business_understanding": self.understand_schema()
+        }
+
+        return metadata
+
+    # =====================================================
+    # GENERATE LLM CONTEXT
+    # =====================================================
+
+    def generate_llm_context(self):
+
+        metadata = self.generate_metadata()
+
+        context = f"""
+        DATABASE SCHEMA UNDERSTANDING
+
+        TABLES:
+        {json.dumps(metadata['tables'], indent=2)}
+
+        PRIMARY KEYS:
+        {json.dumps(metadata['primary_keys'], indent=2)}
+
+        FOREIGN KEYS:
+        {json.dumps(metadata['foreign_keys'], indent=2)}
+
+        RELATIONSHIPS:
+        {json.dumps(metadata['relationships'], indent=2)}
+
+        COMMON COLUMNS:
+        {json.dumps(metadata['common_columns'], indent=2)}
+
+        BUSINESS UNDERSTANDING:
+        {json.dumps(metadata['business_understanding'], indent=2)}
+        """
+
+        return context
+
+    # =====================================================
+    # RUN EVERYTHING
+    # =====================================================
+
+    def analyze(self):
+
+        self.read_excel()
+
+        self.detect_tables()
+
+        self.detect_primary_keys()
+
+        self.detect_foreign_keys()
+
+        self.build_relationships()
+
+        metadata = self.generate_metadata()
+
+        llm_context = self.generate_llm_context()
+
+        return {
+            "metadata": metadata,
+            "llm_context": llm_context
+        }
