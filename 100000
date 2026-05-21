@@ -2,19 +2,60 @@
 
 import { useState } from "react";
 import { styles } from "../../styles/AppStyles";
-import accCreationService from "../../services/accCreationService";
 import RegionDropdown from "../../utils/RegionDropdown";
+import accCreationService from "../../services/accCreationService";
+
+// ======================================
+// HELPERS
+// ======================================
 
 const isOnlyDigits = (value) => /^\d*$/.test(value);
-const isAlphaNumeric = (value) => /^[A-Za-z0-9]*$/.test(value);
+
+// ======================================
+// PRODUCT OPTIONS
+// ======================================
+
+const PRODUCT_OPTIONS = [
+
+    { value: "SBGEN", label: "Savings General" },
+
+    { value: "SBSA", label: "Savings Salary" },
+
+    { value: "CURRENT", label: "Current Account" },
+
+    { value: "FD", label: "Fixed Deposit" },
+
+    { value: "RD", label: "Recurring Deposit" },
+
+    { value: "PPF", label: "PPF Account" },
+
+    { value: "NRE", label: "NRE Account" },
+
+    { value: "NRO", label: "NRO Account" },
+
+    { value: "CC", label: "Cash Credit" },
+
+    { value: "OD", label: "Over Draft" }
+
+];
+
+// ======================================
+// COMPONENT
+// ======================================
 
 export default function AccountCreationView() {
+
+    // ==================================
+    // STATES
+    // ==================================
 
     const [server, setServer] = useState("K");
 
     const [cif, setCif] = useState("");
-    const [product, setProduct] = useState("");
-    const [n, setN] = useState("1");
+
+    const [product, setProduct] = useState("SBGEN");
+
+    const [count, setCount] = useState("1");
 
     const [loading, setLoading] = useState(false);
 
@@ -22,59 +63,78 @@ export default function AccountCreationView() {
 
     const [result, setResult] = useState(null);
 
-    // =========================
-    // HANDLE SUBMIT
-    // =========================
+    // ==================================
+    // SUBMIT
+    // ==================================
 
     const handleSubmit = async () => {
 
         setError("");
+
         setResult(null);
 
-        // CIF Validation
+        // ===============================
+        // CIF VALIDATION
+        // ===============================
+
         if (!/^\d{11}$/.test(cif)) {
-            setError("CIF must be exactly 11 digits");
+
+            setError(
+                "CIF must be exactly 11 digits"
+            );
+
             return;
         }
 
-        // PRODUCT Validation
-        if (!isAlphaNumeric(product)) {
-            setError("Product must be alphanumeric only");
+        // ===============================
+        // COUNT VALIDATION
+        // ===============================
+
+        if (!/^\d+$/.test(count)) {
+
+            setError(
+                "Count must be numeric"
+            );
+
             return;
         }
 
-        if (product.length < 2 || product.length > 10) {
-            setError("Product length must be between 2 and 10");
-            return;
-        }
-
-        // N Validation
-        if (!/^\d+$/.test(n)) {
-            setError("Count must be numeric");
-            return;
-        }
-
-        const total = Number(n);
+        const total = Number(count);
 
         if (total < 1 || total > 100) {
-            setError("Count must be between 1 and 100");
+
+            setError(
+                "Count must be between 1 and 100"
+            );
+
             return;
         }
+
+        // ===============================
+        // API CALL
+        // ===============================
 
         try {
 
             setLoading(true);
 
-            const response = await accCreationService.create({
+            const response =
+                await accCreationService.acc_creation({
 
-                server,
-                cif,
-                product,
-                n: total
+                    server: server,
 
-            });
+                    cif: cif,
 
-            console.log("API RESPONSE:", response);
+                    product: product,
+
+                    n: total
+
+                });
+
+            console.log(
+                "FULL RESPONSE:",
+                response
+            );
 
             setResult(response);
 
@@ -83,8 +143,11 @@ export default function AccountCreationView() {
             console.error(err);
 
             setError(
+
                 err?.response?.data?.detail ||
+
                 "Account creation failed"
+
             );
 
         } finally {
@@ -94,27 +157,41 @@ export default function AccountCreationView() {
         }
     };
 
+    // ==================================
+    // UI
+    // ==================================
+
     return (
 
         <div>
 
+            {/* ========================== */}
             {/* PAGE HEADER */}
+            {/* ========================== */}
 
             <div style={styles.pageHeader}>
+
                 <h1 style={styles.pageTitle}>
                     Account Creation
                 </h1>
+
             </div>
 
+            {/* ========================== */}
             {/* ERROR */}
+            {/* ========================== */}
 
             {error && (
+
                 <div style={styles.fieldError}>
                     {error}
                 </div>
+
             )}
 
+            {/* ========================== */}
             {/* FORM CARD */}
+            {/* ========================== */}
 
             <div style={styles.formCard}>
 
@@ -136,18 +213,22 @@ export default function AccountCreationView() {
                         </label>
 
                         <input
+                            type="text"
                             style={styles.input}
-                            placeholder="11 digit CIF"
+                            placeholder="Enter 11 digit CIF"
                             value={cif}
                             onChange={(e) => {
 
-                                const val = e.target.value;
+                                const val =
+                                    e.target.value;
 
                                 if (
                                     isOnlyDigits(val) &&
                                     val.length <= 11
                                 ) {
+
                                     setCif(val);
+
                                 }
                             }}
                         />
@@ -159,25 +240,35 @@ export default function AccountCreationView() {
                     <div style={styles.formGroup}>
 
                         <label style={styles.label}>
-                            Product Code
+                            Product Type
                         </label>
 
-                        <input
-                            style={styles.input}
-                            placeholder="ex. SBGEN"
+                        <select
+                            style={styles.select}
                             value={product}
-                            onChange={(e) => {
+                            onChange={(e) =>
+                                setProduct(
+                                    e.target.value
+                                )
+                            }
+                        >
 
-                                const val = e.target.value.toUpperCase();
+                            {PRODUCT_OPTIONS.map(
+                                (item) => (
 
-                                if (
-                                    isAlphaNumeric(val) &&
-                                    val.length <= 10
-                                ) {
-                                    setProduct(val);
-                                }
-                            }}
-                        />
+                                    <option
+                                        key={item.value}
+                                        value={item.value}
+                                    >
+
+                                        {item.label}
+
+                                    </option>
+
+                                )
+                            )}
+
+                        </select>
 
                     </div>
 
@@ -190,18 +281,22 @@ export default function AccountCreationView() {
                         </label>
 
                         <input
+                            type="text"
                             style={styles.input}
                             placeholder="1 to 100"
-                            value={n}
+                            value={count}
                             onChange={(e) => {
 
-                                const val = e.target.value;
+                                const val =
+                                    e.target.value;
 
                                 if (
                                     isOnlyDigits(val) &&
                                     val.length <= 3
                                 ) {
-                                    setN(val);
+
+                                    setCount(val);
+
                                 }
                             }}
                         />
@@ -210,13 +305,15 @@ export default function AccountCreationView() {
 
                 </div>
 
+                {/* ====================== */}
                 {/* BUTTON */}
+                {/* ====================== */}
 
                 <div style={{ marginTop: "24px" }}>
 
                     <button
-                        onClick={handleSubmit}
                         style={styles.primaryButton}
+                        onClick={handleSubmit}
                         disabled={loading}
                     >
 
@@ -230,77 +327,110 @@ export default function AccountCreationView() {
 
             </div>
 
+            {/* ========================== */}
             {/* RESPONSE */}
+            {/* ========================== */}
 
             {result?.results && (
 
                 <div style={styles.resultsCard}>
 
-                    <h3 style={{ marginBottom: "20px" }}>
+                    <h3 style={{
+                        marginBottom: "20px"
+                    }}>
                         Account Creation Response
                     </h3>
 
                     <div style={styles.resultsList}>
 
-                        {result.results.map((item, index) => (
+                        {result.results.map(
+                            (item, index) => (
 
-                            <div
-                                key={index}
-                                style={styles.resultItem}
-                            >
+                                <div
+                                    key={index}
+                                    style={styles.resultItem}
+                                >
 
-                                <div style={styles.resultContent}>
+                                    <div
+                                        style={
+                                            styles.resultContent
+                                        }
+                                    >
 
-                                    <p>
-                                        <strong>
-                                            ATTEMPT :
-                                        </strong>{" "}
-                                        {item.attempt}
-                                    </p>
+                                        {/* ATTEMPT */}
 
-                                    {item.parsed ? (
-
-                                        Object.entries(item.parsed)
-                                            .filter(([key, value]) =>
-                                                value !== null &&
-                                                value !== ""
-                                            )
-                                            .map(([key, value]) => (
-
-                                                <p key={key}>
-
-                                                    <strong>
-                                                        {key
-                                                            .replaceAll("_", " ")
-                                                            .toUpperCase()}
-                                                        :
-                                                    </strong>{" "}
-
-                                                    {String(value)}
-
-                                                </p>
-
-                                            ))
-
-                                    ) : (
-
-                                        <p style={{ color: "red" }}>
+                                        <p>
 
                                             <strong>
-                                                ERROR :
+                                                ATTEMPT :
                                             </strong>{" "}
 
-                                            {item.error}
+                                            {item.attempt}
 
                                         </p>
 
-                                    )}
+                                        {/* SUCCESS */}
+
+                                        {item.parsed ? (
+
+                                            Object.entries(
+                                                item.parsed
+                                            )
+
+                                                .filter(
+                                                    ([key, value]) =>
+
+                                                        value !== null &&
+                                                        value !== ""
+
+                                                )
+
+                                                .map(
+                                                    ([key, value]) => (
+
+                                                        <p key={key}>
+
+                                                            <strong>
+
+                                                                {key
+                                                                    .replaceAll("_", " ")
+                                                                    .toUpperCase()}
+
+                                                                :
+
+                                                            </strong>{" "}
+
+                                                            {String(value)}
+
+                                                        </p>
+
+                                                    )
+                                                )
+
+                                        ) : (
+
+                                            <p
+                                                style={{
+                                                    color: "red"
+                                                }}
+                                            >
+
+                                                <strong>
+                                                    ERROR :
+                                                </strong>{" "}
+
+                                                {item.error}
+
+                                            </p>
+
+                                        )}
+
+                                    </div>
 
                                 </div>
 
-                            </div>
-
-                        ))}
+                            )
+                        )}
 
                     </div>
 
